@@ -51,6 +51,28 @@ Optional printer port test:
 Test-NetConnection <actual-printer-ip> -Port 9100
 ```
 
+## Normalizing PDF / Image Labels
+
+`print_label.py` turns a PDF or image into a print-ready 4x6 raster ZPL label.
+The pipeline is: detect input type -> render (PDF page 1) or open (image) ->
+normalize to a 1-bit 812x1218 canvas -> encode as a `^GFA` raster -> save a
+preview and optionally print.
+
+```powershell
+# Save ZPL + a preview PNG without printing (review the preview first)
+python .\src\zebra_label_gateway\print_label.py --input path\to\label.pdf --save-only
+
+# Normalize and print
+python .\src\zebra_label_gateway\print_label.py --input path\to\label.pdf --host <printer-ip>
+```
+
+Normalization preserves aspect ratio (letterboxed with white, never stretched)
+and auto-rotates landscape sources to portrait, so barcodes stay scannable.
+Conversion to black-and-white uses a hard threshold (not dithering); tune it
+with `--threshold 0-255` (lower burns less ink). Output lands in `samples/` by
+default (`--output-dir` to change) as `<name>.zpl` and `<name>.preview.png`.
+Always check the preview before printing.
+
 ## Troubleshooting
 
 If a job sends successfully (`Test-NetConnection ... -Port 9100` succeeds and the
