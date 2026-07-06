@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+dist/
+build/
+*.egg-info/
+
+# Test/cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local app data
+LabelDrop/
+logs/
+*.log
+
+# Generated samples/output
+samples/*.zpl
+samples/*.png
+samples/*.pdf
+!samples/README.md
+!samples/.gitkeep
+
+# Secrets/local config
+config/local.yaml
+.env

@@ -1,0 +1,12 @@
+profiles:
+  generic_4x6:
+    description: "Full-page 4x6 label"
+    page_type: "label"
+    rotate: 0
+    threshold: "standard"
+
+  generic_letter_embedded:
+    description: "Letter-size page with embedded shipping label"
+    page_type: "letter"
+    rotate: 0
+    threshold: "standard"

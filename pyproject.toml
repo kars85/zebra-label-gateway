@@ -1,0 +1,20 @@
+[project]
+name = "zebra-label-gateway"
+version = "0.1.0"
+description = "Local middleware for normalizing inconsistent shipping labels into reliable 4x6 ZPL output for Zebra printers."
+requires-python = ">=3.11"
+dependencies = [
+    "pymupdf",
+    "pillow",
+    "pyyaml",
+    "watchdog"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

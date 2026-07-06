@@ -1,0 +1,23 @@
+printer:
+  name: "ZDesigner ZD421-203dpi ZPL"
+  dpi: 203
+  label_width_in: 4
+  label_height_in: 6
+  output_width_dots: 812
+  output_height_dots: 1218
+
+  connection_type: "tcp"
+
+  tcp_host: "192.168.x.x"
+  tcp_port: 9100
+
+  windows_queue_name: "Zebra ZD421 - 4x6 Shipping"
+
+folders:
+  input: "C:/Users/Karson/LabelDrop/In"
+  printed: "C:/Users/Karson/LabelDrop/Printed"
+  failed: "C:/Users/Karson/LabelDrop/Failed"
+
+printing:
+  preview_before_print: true
+  auto_print: false
