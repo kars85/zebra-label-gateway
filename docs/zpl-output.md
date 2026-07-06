@@ -4,9 +4,13 @@
 
 The first supported output is a native ZPL test label using `^PW812` and `^LL1218`.
 
-## Future Raster Output
+## Raster Output
 
-Normalized 1-bit images will be encoded as ZPL graphics payloads after PDF and image normalization are stable.
+Normalized 1-bit images are encoded as `^GFA` ZPL graphics payloads by
+`zpl_encoder.build_raster_label_zpl`. Black pixels become set bits, and each row
+is padded to a byte boundary with white so no black edge stripe appears. Byte
+counts in the `^GFA` header are computed as `bytes_per_row = ceil(width / 8)` and
+`total = bytes_per_row * height`.
 
 ## Determinism
 

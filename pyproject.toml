@@ -14,6 +14,12 @@ dependencies = [
 dev = [
     "pytest"
 ]
+windows = [
+    "pywin32"
+]
+
+[project.scripts]
+zebra-label-gateway = "zebra_label_gateway.app:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

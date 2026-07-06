@@ -20,6 +20,15 @@ The first working milestone is a native ZPL test label that can be saved and sen
 - Retailer-specific crop profiles
 - Automatic printing by default
 
+## Post-MVP Status
+
+The MVP is complete, and the following have since been implemented: PDF/image
+normalization to raster ZPL, retailer crop profiles, the LabelDrop watched
+folder, a local preview web UI, and a Windows print-queue transport. Automatic
+printing remains disabled by default; a preview is always produced first. Adobe
+and Word plugin integration remains out of scope -- those stay input sources
+only.
+
 ## Development Principles
 
 - Prove raw ZPL printing first.

@@ -51,27 +51,70 @@ Optional printer port test:
 Test-NetConnection <actual-printer-ip> -Port 9100
 ```
 
-## Normalizing PDF / Image Labels
+## Command-Line Interface
 
-`print_label.py` turns a PDF or image into a print-ready 4x6 raster ZPL label.
-The pipeline is: detect input type -> render (PDF page 1) or open (image) ->
-normalize to a 1-bit 812x1218 canvas -> encode as a `^GFA` raster -> save a
-preview and optionally print.
+The unified entry point is `zebra_label_gateway.app` (installed as the
+`zebra-label-gateway` command after `pip install -e .`). Printer host/port and
+folders default to `config/default.yaml`; flags override them.
 
 ```powershell
-# Save ZPL + a preview PNG without printing (review the preview first)
-python .\src\zebra_label_gateway\print_label.py --input path\to\label.pdf --save-only
+python -m zebra_label_gateway.app --help
 
-# Normalize and print
-python .\src\zebra_label_gateway\print_label.py --input path\to\label.pdf --host <printer-ip>
+python -m zebra_label_gateway.app profiles                       # list normalization profiles
+python -m zebra_label_gateway.app test-label --host <printer-ip> # built-in ZPL test label
+python -m zebra_label_gateway.app print --input label.pdf --profile ups --save-only
+python -m zebra_label_gateway.app print --input label.pdf --host <printer-ip>
+python -m zebra_label_gateway.app status   --host <printer-ip>   # decoded ~HS
+python -m zebra_label_gateway.app diagnose --host <printer-ip>   # SGD diagnostics
+python -m zebra_label_gateway.app watch --profile ups            # LabelDrop watched folder
+python -m zebra_label_gateway.app ui                             # local preview web UI
 ```
+
+## Normalizing PDF / Image Labels
+
+The `print` command (and `print_label.py`) turns a PDF or image into a
+print-ready 4x6 raster ZPL label. The pipeline is: detect input type -> render
+(PDF page 1) or open (image) -> crop and rotate per profile -> normalize to a
+1-bit 812x1218 canvas -> encode as a `^GFA` raster -> save a preview and
+optionally print.
 
 Normalization preserves aspect ratio (letterboxed with white, never stretched)
 and auto-rotates landscape sources to portrait, so barcodes stay scannable.
-Conversion to black-and-white uses a hard threshold (not dithering); tune it
-with `--threshold 0-255` (lower burns less ink). Output lands in `samples/` by
-default (`--output-dir` to change) as `<name>.zpl` and `<name>.preview.png`.
-Always check the preview before printing.
+Conversion to black-and-white uses a hard threshold (not dithering). Output
+lands in `samples/` by default (`--output-dir` to change) as `<name>.zpl` and
+`<name>.preview.png`. Always check the preview before printing.
+
+### Profiles
+
+Profiles are crop/rotate/threshold presets per label source. `generic_4x6`
+prints a full-page 4x6 as-is; `generic_letter_embedded`, `ups`, `fedex`,
+`usps`, and `amazon_return` auto-crop a label out of a larger page. Auto-crop
+finds the largest connected block of dark content, so a stray footer or packing
+slip on the page does not defeat it. Override or add profiles in
+`config/profiles.yaml` (crop may be `auto`, `null`, or four `0..1` fractions;
+threshold may be `light`/`standard`/`dark` or `0-255`).
+
+## Watched Folder (LabelDrop)
+
+`watch` monitors the input folder from `config/default.yaml`. Each dropped PDF
+or image is normalized, its preview and ZPL saved to the printed folder, and the
+original moved to `printed/` on success or `failed/` on error (with an
+`.error.txt`). Printing happens only when `printing.auto_print` is enabled (or
+`--print` is passed); otherwise it renders previews for manual review. Failures
+never crash the watcher.
+
+## Preview UI
+
+`ui` starts a local, dependency-free web UI (default http://127.0.0.1:8420).
+Enter a file path, pick a profile, and see the exact 1-bit 4x6 preview before
+pressing print. Bound to localhost.
+
+## Windows Printer Queue
+
+The default transport is raw TCP (port 9100). To print through a Windows printer
+queue instead, set `printer.connection_type: windows` and
+`printer.windows_queue_name` in the config, and install the optional dependency:
+`pip install -e ".[windows]"` (pywin32). ZPL is sent as a RAW spool job.
 
 ## Troubleshooting
 
