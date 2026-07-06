@@ -27,6 +27,26 @@ class PrinterConfig:
     windows_queue_name: str
 
 
+@dataclass(frozen=True)
+class FoldersConfig:
+    input: Path
+    printed: Path
+    failed: Path
+
+
+@dataclass(frozen=True)
+class PrintingConfig:
+    preview_before_print: bool
+    auto_print: bool
+
+
+@dataclass(frozen=True)
+class AppConfig:
+    printer: PrinterConfig
+    folders: FoldersConfig
+    printing: PrintingConfig
+
+
 def load_yaml(path: Path) -> dict[str, Any]:
     with path.open("r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
@@ -55,4 +75,34 @@ def load_printer_config(path: Path = DEFAULT_CONFIG_PATH) -> PrinterConfig:
         tcp_host=str(printer["tcp_host"]),
         tcp_port=int(printer["tcp_port"]),
         windows_queue_name=str(printer["windows_queue_name"]),
+    )
+
+
+def load_folders_config(path: Path = DEFAULT_CONFIG_PATH) -> FoldersConfig:
+    folders = load_yaml(path).get("folders", {})
+    if not isinstance(folders, dict):
+        raise ValueError("folders config must be a mapping")
+    return FoldersConfig(
+        input=Path(folders["input"]),
+        printed=Path(folders["printed"]),
+        failed=Path(folders["failed"]),
+    )
+
+
+def load_printing_config(path: Path = DEFAULT_CONFIG_PATH) -> PrintingConfig:
+    printing = load_yaml(path).get("printing", {})
+    if not isinstance(printing, dict):
+        raise ValueError("printing config must be a mapping")
+    return PrintingConfig(
+        preview_before_print=bool(printing.get("preview_before_print", True)),
+        auto_print=bool(printing.get("auto_print", False)),
+    )
+
+
+def load_app_config(path: Path = DEFAULT_CONFIG_PATH) -> AppConfig:
+    """Load the full application config (printer, folders, printing)."""
+    return AppConfig(
+        printer=load_printer_config(path),
+        folders=load_folders_config(path),
+        printing=load_printing_config(path),
     )
