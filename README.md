@@ -156,22 +156,27 @@ healthcheck against `/api/profiles`. Saved-label history and trained crop
 profiles live in `/app/data`, which Compose mounts as the persistent `zlg-data`
 volume so they survive restarts.
 
-## iPhone / iPad (installable PWA)
+## iPhone / iPad (installable app)
 
-The web app is an installable PWA — add it to the Home Screen for a standalone,
-offline-capable app with a native icon, safe-area layout, touch-sized crop
-handles, and camera capture (photograph a paper label straight into the
-pipeline). iOS requires HTTPS for install, so run the bundled Caddy TLS sidecar:
+The web app installs to the iPhone/iPad Home Screen as a standalone,
+offline-capable app — native icon, full-screen, safe-area layout, touch-sized
+crop handles, and camera capture (photograph a paper label straight into the
+pipeline).
 
-```bash
-ZLG_HOSTNAME=gateway.local ZLG_PRINTER_HOST=10.10.100.107 \
-  docker compose --profile tls up -d --build
-```
+iPhones only install web apps over a **secure (HTTPS)** connection, which needs
+a certificate. On a home/shop network there's no automatic certificate, so the
+gateway includes a small **Caddy** helper that makes its own — you trust it once
+per device. The short version:
 
-Then trust Caddy's internal CA once per device and Add to Home Screen — full
-steps in [docs/tls-setup.md](docs/tls-setup.md). To print from Mail/Files via the
-iOS share sheet, build the [Apple Shortcut](docs/ios-shortcut.md) that POSTs to
-the API.
+1. Copy `.env.example` to `.env` and set your printer IP and this computer's IP.
+2. Start it: `docker compose --profile tls up -d --build`
+3. Trust the certificate on the iPhone, then **Add to Home Screen** in Safari.
+
+**Novice-friendly, step-by-step walkthrough (with the exact iPhone taps):
+[docs/tls-setup.md](docs/tls-setup.md).**
+
+To also print straight from Mail/Files via the iOS share sheet, build the
+[Apple Shortcut](docs/ios-shortcut.md).
 
 ## Windows desktop app
 
