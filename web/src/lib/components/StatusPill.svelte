@@ -60,6 +60,10 @@
   }
   .text {
     font-variant-numeric: tabular-nums;
+    max-width: 46vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .dot {
     width: 8px;

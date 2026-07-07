@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { editor, loadProfiles, uploadFile } from './lib/editor.svelte'
+  import { editor, loadProfiles, printLabel, setPage, uploadFile } from './lib/editor.svelte'
+  import { toast } from './lib/toast.svelte'
   import DropZone from './lib/components/DropZone.svelte'
   import Editor from './lib/components/Editor.svelte'
   import HistoryPanel from './lib/components/HistoryPanel.svelte'
@@ -32,6 +33,25 @@
     historyPanel?.refresh()
   }
 
+  async function doPrint() {
+    if (!editor.session || editor.printing) return
+    const res = await printLabel()
+    toast(res.ok ? '✓ ' + res.detail : 'Print failed: ' + res.detail, res.ok ? 'ok' : 'err')
+    if (res.ok) onHistoryChanged()
+  }
+
+  function onKeydown(e: KeyboardEvent) {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'p') {
+      e.preventDefault()
+      doPrint()
+      return
+    }
+    const typing = ['INPUT', 'SELECT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)
+    if (typing || !editor.session || e.metaKey || e.ctrlKey) return
+    if (e.key === '[') setPage(editor.page - 1)
+    else if (e.key === ']') setPage(editor.page + 1)
+  }
+
   $effect(() => {
     const saved = localStorage.getItem('zlg-theme')
     if (saved === 'light' || saved === 'dark') {
@@ -40,7 +60,11 @@
     }
     loadProfiles()
     window.addEventListener('paste', onPaste)
-    return () => window.removeEventListener('paste', onPaste)
+    window.addEventListener('keydown', onKeydown)
+    return () => {
+      window.removeEventListener('paste', onPaste)
+      window.removeEventListener('keydown', onKeydown)
+    }
   })
 </script>
 
@@ -88,6 +112,14 @@
     {/if}
     <HistoryPanel bind:this={historyPanel} />
   </main>
+
+  {#if editor.session}
+    <div class="mobile-print">
+      <button onclick={doPrint} disabled={editor.printing}>
+        {editor.printing ? 'Printing…' : 'Print label'}
+      </button>
+    </div>
+  {/if}
 </div>
 
 <StatusDialog bind:this={statusDialog} />
@@ -171,9 +203,53 @@
     width: 100%;
     margin: 0 auto;
   }
+  @media (max-width: 560px) {
+    .toolbar {
+      gap: var(--sp-2);
+      padding: 0 var(--sp-3);
+    }
+    .sub {
+      display: none;
+    }
+  }
   .empty {
     display: grid;
     place-items: center;
     min-height: 46vh;
+  }
+
+  /* Thumb-reachable sticky Print on phones; hidden where the panel is visible. */
+  .mobile-print {
+    display: none;
+  }
+  @media (max-width: 720px) {
+    .mobile-print {
+      display: block;
+      position: fixed;
+      inset: auto 0 0 0;
+      z-index: var(--z-sticky);
+      padding: var(--sp-3) var(--sp-4);
+      padding-bottom: calc(var(--sp-3) + env(safe-area-inset-bottom));
+      background: color-mix(in oklch, var(--bg) 90%, transparent);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid var(--line);
+    }
+    .mobile-print button {
+      width: 100%;
+      min-height: var(--tap);
+      border: 1px solid var(--primary);
+      border-radius: var(--r-md);
+      background: var(--primary);
+      color: var(--on-primary);
+      font-size: var(--fs-md);
+      font-weight: 650;
+      cursor: pointer;
+    }
+    .mobile-print button:disabled {
+      opacity: 0.6;
+    }
+    .main {
+      padding-bottom: 84px;
+    }
   }
 </style>
