@@ -19,7 +19,9 @@ def _pdf_bytes() -> bytes:
 
 
 @pytest.fixture()
-def client():
+def client(tmp_path, monkeypatch):
+    # Isolate saved-label history to a temp data dir per test.
+    monkeypatch.setenv("ZLG_DATA_DIR", str(tmp_path / "data"))
     return TestClient(server.create_app())
 
 
@@ -89,6 +91,32 @@ def test_multipage_upload_and_page_render(client) -> None:
     # Rendering page 2 works.
     r = client.post("/api/render", json={"id": sid, "page": 2, "profile": "generic_4x6"})
     assert r.status_code == 200 and int(r.headers["X-Zpl-Bytes"]) > 0
+
+
+def test_print_saves_and_manages_history(client, monkeypatch) -> None:
+    monkeypatch.setattr(server, "send_zpl_tcp", lambda zpl, host, port: None)
+    up = client.post("/api/upload", files={"file": ("hlabel.pdf", _pdf_bytes(), "application/pdf")}).json()
+    client.post("/api/print", json={"id": up["id"], "profile": "generic_4x6", "crop_mode": "profile"})
+
+    hist = client.get("/api/history").json()
+    assert len(hist) == 1
+    entry = hist[0]
+    assert entry["name"] == "hlabel.pdf" and entry["printed"] is True
+
+    # Preview PNG fetchable
+    prev = client.get(f"/api/history/{entry['id']}/preview")
+    assert prev.status_code == 200 and prev.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+    # Reprint (transport mocked) and delete
+    assert client.post(f"/api/history/{entry['id']}/reprint").json()["ok"] is True
+    assert client.delete(f"/api/history/{entry['id']}").status_code == 200
+    assert client.get("/api/history").json() == []
+
+
+def test_history_missing_entry(client) -> None:
+    assert client.get("/api/history/nope/preview").status_code == 404
+    assert client.post("/api/history/nope/reprint").status_code == 404
+    assert client.delete("/api/history/nope").status_code == 404
 
 
 def test_render_unknown_id(client) -> None:

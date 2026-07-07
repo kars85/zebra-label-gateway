@@ -27,6 +27,7 @@ from ..pdf_renderer import pdf_page_count_from_bytes, render_page_from_bytes
 from ..pipeline import normalize_with_profile
 from ..printer_tcp import decode_status, format_status, query_status_raw, send_zpl_tcp
 from ..profiles import DEFAULT_PROFILE_NAME, get_profile, load_profiles
+from ..storage import HistoryStore
 from ..zpl_encoder import build_raster_label_zpl
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
@@ -84,6 +85,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Zebra Label Gateway", version="1.0")
     sessions: OrderedDict[str, _Session] = OrderedDict()
     printer = resolve_printer(load_app_config().printer)
+    history = HistoryStore()
 
     def _resolve_profile(params: RenderParams):
         base = get_profile(params.profile)
@@ -203,11 +205,40 @@ def create_app() -> FastAPI:
             send_zpl_tcp(zpl, printer.tcp_host, printer.tcp_port)
         except OSError as exc:
             raise HTTPException(status_code=502, detail=f"Print failed: {exc}") from exc
+        history.add(session.name, params.profile, params.page, _png_bytes(preview), zpl, printed=True)
         return JSONResponse({
             "ok": True,
             "detail": f"Sent {len(zpl)} bytes to {printer.tcp_host}:{printer.tcp_port}",
             "zpl_bytes": len(zpl),
         })
+
+    @app.get("/api/history")
+    def api_history() -> list[dict]:
+        return history.list()
+
+    @app.get("/api/history/{entry_id}/preview")
+    def api_history_preview(entry_id: str) -> FileResponse:
+        path = history.preview_path(entry_id)
+        if path is None:
+            raise HTTPException(status_code=404, detail="No such history entry.")
+        return FileResponse(path, media_type="image/png")
+
+    @app.post("/api/history/{entry_id}/reprint")
+    def api_history_reprint(entry_id: str) -> JSONResponse:
+        zpl = history.zpl(entry_id)
+        if zpl is None:
+            raise HTTPException(status_code=404, detail="No such history entry.")
+        try:
+            send_zpl_tcp(zpl, printer.tcp_host, printer.tcp_port)
+        except OSError as exc:
+            raise HTTPException(status_code=502, detail=f"Reprint failed: {exc}") from exc
+        return JSONResponse({"ok": True, "detail": f"Reprinted to {printer.tcp_host}:{printer.tcp_port}"})
+
+    @app.delete("/api/history/{entry_id}")
+    def api_history_delete(entry_id: str) -> JSONResponse:
+        if not history.delete(entry_id):
+            raise HTTPException(status_code=404, detail="No such history entry.")
+        return JSONResponse({"ok": True})
 
     @app.get("/")
     def index() -> FileResponse:

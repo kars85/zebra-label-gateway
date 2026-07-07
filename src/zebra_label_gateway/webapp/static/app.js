@@ -122,7 +122,7 @@ async function doPrint() {
       }),
     });
     const data = await res.json().catch(() => ({}));
-    if (res.ok) toast("✓ " + data.detail, "ok");
+    if (res.ok) { toast("✓ " + data.detail, "ok"); loadHistory(); }
     else toast("Print failed: " + (data.detail || res.status), "err");
   } catch (e) { toast("Print failed: " + e, "err"); }
   finally { btn.disabled = false; btn.textContent = "Print"; }
@@ -229,6 +229,49 @@ function wireCropBox() {
   window.addEventListener("resize", positionCropBox);
 }
 
+// ---------- saved label history ----------
+function esc(s) { return (s || "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+
+async function loadHistory() {
+  let list;
+  try { list = await (await fetch("/api/history")).json(); } catch (_) { return; }
+  const wrap = $("history"), el = $("historyList");
+  if (!list.length) { wrap.classList.add("hidden"); return; }
+  wrap.classList.remove("hidden");
+  el.innerHTML = list.map((h) => {
+    const when = h.created ? new Date(h.created).toLocaleString() : "";
+    const pg = h.page ? " · p" + (h.page + 1) : "";
+    return `<div class="hcard">
+      <img src="${h.preview_url}" alt="label" loading="lazy">
+      <div class="hmeta">
+        <div class="hname" title="${esc(h.name)}">${esc(h.name)}</div>
+        <div class="muted">${esc(h.profile)}${pg} · ${esc(when)}</div>
+        <div class="hactions">
+          <button class="reprint" data-id="${h.id}">Reprint</button>
+          <button class="del" data-id="${h.id}">Delete</button>
+        </div>
+      </div></div>`;
+  }).join("");
+}
+
+function wireHistory() {
+  $("historyList").addEventListener("click", async (e) => {
+    const btn = e.target.closest("button"); if (!btn) return;
+    const id = btn.dataset.id;
+    if (btn.classList.contains("reprint")) {
+      btn.disabled = true;
+      try {
+        const res = await fetch(`/api/history/${id}/reprint`, { method: "POST" });
+        const d = await res.json().catch(() => ({}));
+        toast(res.ok ? "✓ " + d.detail : "Reprint failed: " + (d.detail || res.status), res.ok ? "ok" : "err");
+      } finally { btn.disabled = false; }
+    } else if (btn.classList.contains("del")) {
+      await fetch(`/api/history/${id}`, { method: "DELETE" });
+      loadHistory();
+    }
+  });
+}
+
 // ---------- printer status ----------
 async function refreshStatus() {
   const dot = $("statusDot"), text = $("statusText");
@@ -267,7 +310,8 @@ $("outImg").addEventListener("click", () => $("outImg").parentElement.classList.
 $("pagePrev").addEventListener("click", () => gotoPage(-1));
 $("pageNext").addEventListener("click", () => gotoPage(1));
 
-wireDrop(); wireControls(); wireCropBox(); loadProfiles();
+wireDrop(); wireControls(); wireCropBox(); wireHistory(); loadProfiles();
+loadHistory();
 refreshStatus();
 $("statusPill").addEventListener("click", refreshStatus);
 setInterval(refreshStatus, 30000);

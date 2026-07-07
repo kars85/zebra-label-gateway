@@ -36,6 +36,16 @@ def config_path(name: str) -> Path:
     return config_dir() / name
 
 
+def data_dir() -> Path:
+    """Writable directory for runtime data (history, trained profiles).
+
+    Uses ``ZLG_DATA_DIR`` if set (the container mounts a volume there), else a
+    ``data/`` folder next to the source tree.
+    """
+    env = os.environ.get("ZLG_DATA_DIR")
+    return Path(env) if env else REPO_ROOT / "data"
+
+
 DEFAULT_CONFIG_PATH = config_path("default.yaml")
 
 

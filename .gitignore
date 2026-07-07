@@ -27,6 +27,7 @@ Thumbs.db
 
 # Local app data
 LabelDrop/
+data/
 logs/
 *.log
 
