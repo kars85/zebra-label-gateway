@@ -1,0 +1,6 @@
+{
+  "files": ["src/zebra_label_gateway/webapp/static/index.html"],
+  "insertBefore": "</head>",
+  "commentSyntax": "html",
+  "cspChecked": true
+}
