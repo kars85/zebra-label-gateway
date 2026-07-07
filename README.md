@@ -156,6 +156,36 @@ healthcheck against `/api/profiles`. Saved-label history and trained crop
 profiles live in `/app/data`, which Compose mounts as the persistent `zlg-data`
 volume so they survive restarts.
 
+## iPhone / iPad (installable PWA)
+
+The web app is an installable PWA — add it to the Home Screen for a standalone,
+offline-capable app with a native icon, safe-area layout, touch-sized crop
+handles, and camera capture (photograph a paper label straight into the
+pipeline). iOS requires HTTPS for install, so run the bundled Caddy TLS sidecar:
+
+```bash
+ZLG_HOSTNAME=gateway.local ZLG_PRINTER_HOST=10.10.100.107 \
+  docker compose --profile tls up -d --build
+```
+
+Then trust Caddy's internal CA once per device and Add to Home Screen — full
+steps in [docs/tls-setup.md](docs/tls-setup.md). To print from Mail/Files via the
+iOS share sheet, build the [Apple Shortcut](docs/ios-shortcut.md) that POSTs to
+the API.
+
+## Frontend development
+
+The UI is a Vite + Svelte 5 + TypeScript app in `web/`, built to
+`src/zebra_label_gateway/webapp/static/dist/` and served by FastAPI. Design
+tokens and the component system are documented in [DESIGN.md](DESIGN.md).
+
+```bash
+cd web
+npm install
+npm run dev     # dev server on :5173, proxies /api to :8000
+npm run build   # emit production assets served by FastAPI
+```
+
 ## Windows Printer Queue
 
 The default transport is raw TCP (port 9100). To print through a Windows printer

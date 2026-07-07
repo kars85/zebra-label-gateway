@@ -4,7 +4,8 @@ services:
     image: zebra-label-gateway:latest
     container_name: zebra-label-gateway
     ports:
-      # Host port is configurable; some Windows hosts reserve 8000 (Hyper-V range).
+      # Direct HTTP access (optional once Caddy/TLS is in front). Some Windows
+      # hosts reserve 8000 (Hyper-V range) — override with ZLG_HOST_PORT.
       - "${ZLG_HOST_PORT:-8000}:8000"
     environment:
       # Point this at your printer's IP. Port defaults to 9100.
@@ -21,5 +22,26 @@ services:
       retries: 3
       start_period: 5s
 
+  # HTTPS for the LAN (required for iOS PWA install + service workers).
+  # Enable with:  docker compose --profile tls up -d --build
+  caddy:
+    image: caddy:2
+    container_name: zlg-caddy
+    profiles: ["tls"]
+    depends_on:
+      - zebra-label-gateway
+    ports:
+      - "443:443"
+      - "80:80"
+    environment:
+      ZLG_HOSTNAME: "${ZLG_HOSTNAME:-gateway.local}"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    restart: unless-stopped
+
 volumes:
   zlg-data:
+  caddy-data:
+  caddy-config:

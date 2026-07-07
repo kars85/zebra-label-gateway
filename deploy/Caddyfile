@@ -1,0 +1,17 @@
+# LAN TLS for Zebra Label Gateway using Caddy's internal CA — no public domain
+# or internet needed. Caddy mints a certificate signed by its own root CA; you
+# install + trust that root once on each bench device (see docs/tls-setup.md).
+#
+# Set the hostname the devices will use (an mDNS name like gateway.local, or the
+# Docker host's LAN IP) via the ZLG_HOSTNAME env var in docker-compose.
+
+{
+	# Issue certificates from Caddy's locally-trusted internal CA.
+	local_certs
+}
+
+{$ZLG_HOSTNAME:gateway.local} {
+	tls internal
+	encode zstd gzip
+	reverse_proxy zebra-label-gateway:8000
+}
