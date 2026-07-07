@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<oor:component-data xmlns:oor="http://openoffice.org/2001/registry"
+                    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                    oor:name="Addons" oor:package="org.openoffice.Office">
+  <node oor:name="AddonUI">
+    <node oor:name="AddonMenu">
+      <node oor:name="com.zebralabelgateway.send" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string">
+          <value>vnd.sun.star.script:zebra-label-gateway.oxt|Scripts|python|zlg_gateway.py$send_to_gateway?language=Python&amp;location=user:uno_packages</value>
+        </prop>
+        <prop oor:name="Title" oor:type="xs:string">
+          <value xml:lang="en">Send to Label Gateway</value>
+        </prop>
+        <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+      </node>
+      <node oor:name="com.zebralabelgateway.print" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string">
+          <value>vnd.sun.star.script:zebra-label-gateway.oxt|Scripts|python|zlg_gateway.py$send_and_print?language=Python&amp;location=user:uno_packages</value>
+        </prop>
+        <prop oor:name="Title" oor:type="xs:string">
+          <value xml:lang="en">Send &amp; Print label</value>
+        </prop>
+        <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+      </node>
+      <node oor:name="com.zebralabelgateway.config" oor:op="replace">
+        <prop oor:name="URL" oor:type="xs:string">
+          <value>vnd.sun.star.script:zebra-label-gateway.oxt|Scripts|python|zlg_gateway.py$set_gateway_url?language=Python&amp;location=user:uno_packages</value>
+        </prop>
+        <prop oor:name="Title" oor:type="xs:string">
+          <value xml:lang="en">Set Gateway address…</value>
+        </prop>
+        <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+      </node>
+    </node>
+
+    <node oor:name="OfficeToolBar">
+      <node oor:name="com.zebralabelgateway.toolbar" oor:op="replace">
+        <node oor:name="t1" oor:op="replace">
+          <prop oor:name="URL" oor:type="xs:string">
+            <value>vnd.sun.star.script:zebra-label-gateway.oxt|Scripts|python|zlg_gateway.py$send_and_print?language=Python&amp;location=user:uno_packages</value>
+          </prop>
+          <prop oor:name="Title" oor:type="xs:string">
+            <value xml:lang="en">Print label</value>
+          </prop>
+          <prop oor:name="Target" oor:type="xs:string"><value>_self</value></prop>
+        </node>
+      </node>
+    </node>
+  </node>
+</oor:component-data>

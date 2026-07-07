@@ -8,6 +8,9 @@ packaging/build/
 packaging/dist/
 packaging/*.exe
 
+# Built plugin bundles
+plugins/*.oxt
+
 # Python
 __pycache__/
 *.py[cod]
