@@ -273,6 +273,10 @@ def create_app() -> FastAPI:
 
     @app.get("/")
     def index() -> FileResponse:
+        # Prefer the built Svelte SPA; fall back to the legacy page before a build.
+        dist_index = STATIC_DIR / "dist" / "index.html"
+        if dist_index.exists():
+            return FileResponse(dist_index)
         return FileResponse(STATIC_DIR / "index.html")
 
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
