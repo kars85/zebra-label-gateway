@@ -2,7 +2,11 @@ import fitz
 import pytest
 from PIL import Image
 
-from zebra_label_gateway.pdf_renderer import PDF_BASE_DPI, render_first_page_to_image
+from zebra_label_gateway.pdf_renderer import (
+    PDF_BASE_DPI,
+    render_first_page_from_bytes,
+    render_first_page_to_image,
+)
 
 
 def _make_pdf(path, width_pt=288, height_pt=432) -> None:
@@ -30,3 +34,11 @@ def test_renders_first_page_at_target_dpi(tmp_path) -> None:
 def test_missing_pdf_raises(tmp_path) -> None:
     with pytest.raises(Exception):
         render_first_page_to_image(tmp_path / "does-not-exist.pdf")
+
+
+def test_render_from_bytes(tmp_path) -> None:
+    pdf_path = tmp_path / "label.pdf"
+    _make_pdf(pdf_path, width_pt=288, height_pt=432)
+    image = render_first_page_from_bytes(pdf_path.read_bytes(), dpi=203)
+    assert image.mode == "RGB"
+    assert abs(image.width - round(288 / PDF_BASE_DPI * 203)) <= 1

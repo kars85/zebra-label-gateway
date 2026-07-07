@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,7 +11,32 @@ import yaml
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_CONFIG_PATH = REPO_ROOT / "config" / "default.yaml"
+
+
+def config_dir() -> Path:
+    """Locate the config directory across dev, installed, and container layouts.
+
+    Order: ``ZLG_CONFIG_DIR`` env var, the source-tree ``config/`` (dev), the
+    working directory's ``config/`` (the container's ``/app/config``), then
+    ``/app/config``. Falls back to the source-tree path if none exist yet.
+    """
+    candidates = []
+    env = os.environ.get("ZLG_CONFIG_DIR")
+    if env:
+        candidates.append(Path(env))
+    candidates += [REPO_ROOT / "config", Path.cwd() / "config", Path("/app/config")]
+    for candidate in candidates:
+        if (candidate / "default.yaml").exists():
+            return candidate
+    return candidates[0]
+
+
+def config_path(name: str) -> Path:
+    """Return the path to a named config file (e.g. ``default.yaml``)."""
+    return config_dir() / name
+
+
+DEFAULT_CONFIG_PATH = config_path("default.yaml")
 
 
 @dataclass(frozen=True)

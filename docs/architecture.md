@@ -26,6 +26,10 @@ bytes reach the printer.
 - `printer_windows.py`: Windows print-spooler transport (RAW jobs via pywin32).
 - `transport.py`: routes a payload to TCP or the Windows queue by config.
 - `watcher.py`: LabelDrop watched-folder workflow.
-- `ui/web.py`: local preview web UI (stdlib http.server).
+- `ui/web.py`: basic local preview web UI (stdlib http.server, no deps).
+- `webapp/`: full FastAPI web app -- upload, live crop/rotate/threshold editor,
+  and print. Served in the Docker image (see `Dockerfile`, `docker-compose.yml`).
 - `app.py`: unified CLI entry point.
-- `config.py`: typed loaders for printer, folders, and printing config.
+- `config.py`: typed loaders for printer, folders, and printing config, with
+  layout-independent config-dir resolution (env, source tree, or container).
+

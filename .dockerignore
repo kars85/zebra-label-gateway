@@ -1,0 +1,34 @@
+# Keep the build context small and reproducible.
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+.git/
+.github/
+.gitignore
+
+# Local data / generated output
+LabelDrop/
+logs/
+*.log
+samples/*.zpl
+samples/*.png
+samples/*.pdf
+
+# Docs and tests are not needed in the runtime image
+docs/
+tests/
+scripts/
+
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

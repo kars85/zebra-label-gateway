@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "zebra-label-gateway"
 version = "0.1.0"
@@ -26,6 +30,12 @@ web = [
 
 [project.scripts]
 zebra-label-gateway = "zebra_label_gateway.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"zebra_label_gateway.webapp" = ["static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

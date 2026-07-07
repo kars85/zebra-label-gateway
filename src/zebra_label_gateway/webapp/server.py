@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from ..config import PrinterConfig, load_app_config
 from ..image_processor import LABEL_HEIGHT_DOTS, LABEL_WIDTH_DOTS
 from ..input_detection import detect_input_type
-from ..pdf_renderer import render_first_page_to_image
+from ..pdf_renderer import render_first_page_from_bytes
 from ..pipeline import normalize_with_profile
 from ..printer_tcp import decode_status, format_status, query_status_raw, send_zpl_tcp
 from ..profiles import DEFAULT_PROFILE_NAME, get_profile, load_profiles
@@ -129,17 +129,11 @@ def create_app() -> FastAPI:
         raw = await file.read()
         name = file.filename or "upload"
         kind = detect_input_type(name)
-        tmp = io.BytesIO(raw)
         try:
             if kind == "pdf":
-                scratch = STATIC_DIR.parent / "_upload.pdf"
-                scratch.write_bytes(raw)
-                try:
-                    source = render_first_page_to_image(scratch)
-                finally:
-                    scratch.unlink(missing_ok=True)
+                source = render_first_page_from_bytes(raw)
             elif kind == "image":
-                source = Image.open(tmp).convert("RGB")
+                source = Image.open(io.BytesIO(raw)).convert("RGB")
             else:
                 raise HTTPException(status_code=400, detail=f"Unsupported file type: {name}")
         except HTTPException:

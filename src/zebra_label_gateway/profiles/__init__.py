@@ -96,7 +96,9 @@ def load_profiles(yaml_path: Path | None = None) -> dict[str, Profile]:
     """
     profiles = dict(BUILTIN_PROFILES)
     if yaml_path is None:
-        yaml_path = Path(__file__).resolve().parents[3] / "config" / "profiles.yaml"
+        from ..config import config_path
+
+        yaml_path = config_path("profiles.yaml")
     if not yaml_path.exists():
         return profiles
 

@@ -123,9 +123,22 @@ def _cmd_profiles(args, config) -> int:
 
 
 def _cmd_ui(args, config) -> int:
-    from .ui.web import run_web_ui
+    port = args.port or 8000
+    try:
+        import uvicorn  # noqa: F401
+    except ImportError:
+        # Fall back to the dependency-free stdlib preview UI.
+        from .ui.web import run_web_ui
 
-    run_web_ui(host=args.bind, port=args.port or 8420)
+        print("FastAPI/uvicorn not installed; using the basic stdlib UI. "
+              'Install the full editor with: pip install -e ".[web]"')
+        run_web_ui(host=args.bind, port=args.port or 8420)
+        return 0
+
+    import uvicorn
+
+    print(f"Full editor UI at http://{args.bind}:{port}  (Ctrl+C to stop)")
+    uvicorn.run("zebra_label_gateway.webapp.server:app", host=args.bind, port=port)
     return 0
 
 

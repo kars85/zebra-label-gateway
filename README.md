@@ -103,11 +103,42 @@ original moved to `printed/` on success or `failed/` on error (with an
 `--print` is passed); otherwise it renders previews for manual review. Failures
 never crash the watcher.
 
-## Preview UI
+## Web UI (interactive editor)
 
-`ui` starts a local, dependency-free web UI (default http://127.0.0.1:8420).
-Enter a file path, pick a profile, and see the exact 1-bit 4x6 preview before
-pressing print. Bound to localhost.
+The full-featured editor is a FastAPI app: upload a PDF/image, then crop
+(drag box or auto), rotate, and adjust the threshold with a live 4x6 preview
+before printing. Run it locally:
+
+```powershell
+pip install -e ".[web]"
+python -m zebra_label_gateway.app ui        # http://127.0.0.1:8000
+```
+
+`ui` falls back to a basic stdlib preview UI if the `[web]` extra is not
+installed.
+
+## Docker
+
+The web app runs in a container that reaches the printer over TCP (no host
+printer drivers needed). The printer is configured with environment variables.
+
+```bash
+docker build -t zebra-label-gateway:latest .
+docker run -d -p 8000:8000 \
+  -e ZLG_PRINTER_HOST=10.10.100.107 -e ZLG_PRINTER_PORT=9100 \
+  zebra-label-gateway:latest
+# open http://localhost:8000
+```
+
+Or with Compose (set the printer host, and a host port if 8000 is reserved):
+
+```bash
+ZLG_PRINTER_HOST=10.10.100.107 ZLG_HOST_PORT=8420 docker compose up -d --build
+```
+
+Environment variables: `ZLG_PRINTER_HOST` (required), `ZLG_PRINTER_PORT`
+(default 9100), `ZLG_CONFIG_DIR` (default `/app/config`). The container runs as
+a non-root user and includes a healthcheck against `/api/profiles`.
 
 ## Windows Printer Queue
 
