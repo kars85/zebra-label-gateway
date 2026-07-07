@@ -1,8 +1,17 @@
-# Zebra Label Gateway web app.
+# --- Stage 1: build the Svelte frontend ---
+FROM node:22-slim AS web
+WORKDIR /build/web
+COPY web/package.json web/package-lock.json ./
+RUN npm ci
+COPY web/ ./
+# Vite's outDir is ../src/zebra_label_gateway/webapp/static/dist -> /build/src/...
+RUN npm run build
+
+
+# --- Stage 2: Python app ---
 # PyMuPDF and Pillow ship manylinux wheels, so no system build tools are needed.
 FROM python:3.12-slim
 
-# Faster, quieter Python in containers.
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
@@ -12,10 +21,11 @@ ENV PYTHONUNBUFFERED=1 \
 
 WORKDIR /app
 
-# Install dependencies first (better layer caching) then the package itself.
 COPY pyproject.toml requirements.txt ./
 COPY src ./src
 COPY config ./config
+# Bring in the built frontend so it ships inside the installed package.
+COPY --from=web /build/src/zebra_label_gateway/webapp/static/dist ./src/zebra_label_gateway/webapp/static/dist
 RUN pip install --upgrade pip && pip install ".[web]"
 
 # Run as a non-root user; give it a writable data dir for history + trained profiles.
@@ -29,7 +39,6 @@ VOLUME ["/app/data"]
 
 EXPOSE 8000
 
-# The printer host is provided at runtime, e.g. -e ZLG_PRINTER_HOST=10.10.100.107
 ENV ZLG_PRINTER_HOST=""
 
 HEALTHCHECK --interval=30s --timeout=4s --start-period=5s --retries=3 \

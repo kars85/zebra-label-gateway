@@ -35,7 +35,7 @@ zebra-label-gateway = "zebra_label_gateway.app:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-"zebra_label_gateway.webapp" = ["static/*"]
+"zebra_label_gateway.webapp" = ["static/*", "static/dist/*", "static/dist/assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
