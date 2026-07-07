@@ -1,0 +1,90 @@
+import io
+
+import fitz
+import pytest
+from fastapi.testclient import TestClient
+
+from zebra_label_gateway.webapp import server
+
+
+def _pdf_bytes() -> bytes:
+    doc = fitz.open()
+    page = doc.new_page(width=288, height=432)
+    page.insert_text((20, 40), "WEBAPP TEST")
+    page.draw_rect(fitz.Rect(20, 200, 260, 260), fill=(0, 0, 0))
+    out = io.BytesIO()
+    doc.save(out)
+    doc.close()
+    return out.getvalue()
+
+
+@pytest.fixture()
+def client():
+    return TestClient(server.create_app())
+
+
+def test_profiles_endpoint(client) -> None:
+    data = client.get("/api/profiles").json()
+    names = {p["name"] for p in data}
+    assert "generic_4x6" in names and "ups" in names
+
+
+def test_index_served(client) -> None:
+    res = client.get("/")
+    assert res.status_code == 200
+    assert "Zebra Label Gateway" in res.text
+
+
+def test_upload_render_print_flow(client, monkeypatch) -> None:
+    # Upload
+    up = client.post("/api/upload", files={"file": ("label.pdf", _pdf_bytes(), "application/pdf")})
+    assert up.status_code == 200
+    session = up.json()
+    assert session["width"] > 0 and session["height"] > 0
+    sid = session["id"]
+
+    # Source preview is a PNG
+    src = client.get(session["source_url"])
+    assert src.status_code == 200 and src.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+    # Render with a manual crop + rotation + threshold
+    payload = {"id": sid, "profile": "generic_4x6", "rotate": 90, "threshold": 100,
+               "crop_mode": "manual", "crop": [0.0, 0.0, 1.0, 0.5]}
+    rendered = client.post("/api/render", json=payload)
+    assert rendered.status_code == 200
+    assert rendered.content[:8] == b"\x89PNG\r\n\x1a\n"
+    assert int(rendered.headers["X-Zpl-Bytes"]) > 0
+
+    # Print (mock the transport)
+    sent = {}
+    monkeypatch.setattr(server, "send_zpl_tcp", lambda zpl, host, port: sent.update(zpl=zpl, host=host, port=port))
+    printed = client.post("/api/print", json={"id": sid, "profile": "generic_4x6", "crop_mode": "auto"})
+    assert printed.status_code == 200
+    assert printed.json()["ok"] is True
+    assert sent["zpl"].startswith("^XA")
+
+
+def test_render_unknown_id(client) -> None:
+    res = client.post("/api/render", json={"id": "nope", "profile": "generic_4x6"})
+    assert res.status_code == 404
+
+
+def test_unsupported_upload(client) -> None:
+    res = client.post("/api/upload", files={"file": ("notes.docx", b"hello", "application/msword")})
+    assert res.status_code == 400
+
+
+def test_status_offline(client, monkeypatch) -> None:
+    monkeypatch.setattr(server, "query_status_raw", lambda host, port, timeout=5.0: (_ for _ in ()).throw(OSError("no route")))
+    data = client.get("/api/status").json()
+    assert data["ok"] is False
+
+
+def test_env_overrides_printer(monkeypatch) -> None:
+    from zebra_label_gateway.config import PrinterConfig
+
+    base = PrinterConfig("t", 203, 4, 6, 812, 1218, "tcp", "1.1.1.1", 9100, "Q")
+    monkeypatch.setenv("ZLG_PRINTER_HOST", "10.9.8.7")
+    monkeypatch.setenv("ZLG_PRINTER_PORT", "9999")
+    resolved = server.resolve_printer(base)
+    assert resolved.tcp_host == "10.9.8.7" and resolved.tcp_port == 9999

@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zebra Label Gateway</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>🦓 Zebra Label Gateway</h1>
+    <span id="statusPill" class="pill" title="Click to refresh printer status">
+      <span id="statusDot" class="dot"></span><span id="statusText">checking…</span>
+    </span>
+  </header>
+
+  <main>
+    <label id="drop" class="drop">
+      <input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.bmp,.tif,.tiff">
+      <div><strong>Drop a label here</strong> or click to choose</div>
+      <div class="muted">PDF or image · normalized to a 4×6 (812×1218) ZPL label</div>
+    </label>
+
+    <section id="editor" class="editor hidden">
+      <div class="card">
+        <h2>Source · <span id="srcName" class="muted"></span></h2>
+        <div id="stage" class="stage">
+          <img id="srcImg" alt="source label">
+          <div id="cropbox" class="cropbox hidden">
+            <span class="handle nw"></span><span class="handle ne"></span>
+            <span class="handle sw"></span><span class="handle se"></span>
+          </div>
+        </div>
+        <p class="muted" id="cropHint" style="font-size:.8rem"></p>
+      </div>
+
+      <div class="card">
+        <h2>Adjust</h2>
+        <div class="control">
+          <label for="profile">Profile</label>
+          <select id="profile"></select>
+        </div>
+        <div class="control">
+          <label>Crop</label>
+          <div class="seg" id="cropMode">
+            <button data-crop="profile" class="on">Profile</button>
+            <button data-crop="auto">Auto</button>
+            <button data-crop="manual">Manual</button>
+            <button data-crop="none">None</button>
+          </div>
+        </div>
+        <div class="control">
+          <label>Rotate</label>
+          <div class="seg" id="rotate">
+            <button data-rot="0" class="on">0°</button>
+            <button data-rot="90">90°</button>
+            <button data-rot="180">180°</button>
+            <button data-rot="270">270°</button>
+          </div>
+        </div>
+        <div class="control">
+          <div class="rowline"><label for="threshold">Threshold</label><span class="val" id="threshVal">128</span></div>
+          <input id="threshold" type="range" min="0" max="255" value="128">
+          <div class="muted" style="font-size:.78rem">Lower = less ink · higher = only darkest marks</div>
+        </div>
+        <div class="actions">
+          <button id="printBtn" class="btn primary">Print</button>
+          <button id="resetBtn" class="btn ghost" title="Reset adjustments">↺</button>
+        </div>
+        <p class="muted" id="zplInfo" style="font-size:.8rem;margin:.6rem 0 0"></p>
+      </div>
+
+      <div class="card">
+        <h2>4×6 Preview <span id="renderSpin" class="hidden"><span class="spin"></span></span></h2>
+        <div class="preview-wrap"><img id="outImg" alt="normalized preview"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

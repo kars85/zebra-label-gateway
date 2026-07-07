@@ -12,10 +12,16 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "pytest"
+    "pytest",
+    "httpx"
 ]
 windows = [
     "pywin32"
+]
+web = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart"
 ]
 
 [project.scripts]
