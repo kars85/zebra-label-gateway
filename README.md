@@ -156,6 +156,15 @@ healthcheck against `/api/profiles`. Saved-label history and trained crop
 profiles live in `/app/data`, which Compose mounts as the persistent `zlg-data`
 volume so they survive restarts.
 
+### Running on a Linux host (instead of Docker Desktop)
+
+For an always-on print station, run the gateway on a Linux Docker host (a NUC,
+small server, or Pi) with Docker Engine — no Docker Desktop. It's the sturdiest
+setup, and if the host is on a **Tailscale** tailnet you get HTTPS with real,
+auto-trusted certificates (no certificate to install on your iPhone). The
+gateway includes a ready-made Tailscale sidecar (`--profile tailscale`). Full
+walkthrough: [docs/deploy-linux-tailscale.md](docs/deploy-linux-tailscale.md).
+
 ## iPhone / iPad (installable app)
 
 The web app installs to the iPhone/iPad Home Screen as a standalone,

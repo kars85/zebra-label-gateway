@@ -41,7 +41,28 @@ services:
       - caddy-config:/config
     restart: unless-stopped
 
+  # HTTPS over Tailscale (public-valid certs, no CA to trust). Alternative to
+  # the caddy service above — for a Linux host already on a tailnet.
+  # Enable with:  docker compose --profile tailscale up -d --build
+  tailscale:
+    image: tailscale/tailscale:latest
+    container_name: zlg-tailscale
+    profiles: ["tailscale"]
+    hostname: "${ZLG_TS_HOSTNAME:-label-gateway}"   # -> https://<this>.<tailnet>.ts.net
+    depends_on:
+      - zebra-label-gateway
+    environment:
+      TS_AUTHKEY: "${TS_AUTHKEY:-}"                  # from the Tailscale admin console
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_SERVE_CONFIG: /config/serve.json           # proxies :443 -> the gateway
+      TS_USERSPACE: "true"                           # no NET_ADMIN / host caps needed
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./deploy/tailscale-serve.json:/config/serve.json:ro
+    restart: unless-stopped
+
 volumes:
   zlg-data:
   caddy-data:
   caddy-config:
+  tailscale-state:

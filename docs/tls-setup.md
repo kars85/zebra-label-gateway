@@ -138,11 +138,17 @@ like a normal app, remembers your printer, and works over your Wi-Fi.
 
 Build the one-tap **Apple Shortcut** — see [ios-shortcut.md](ios-shortcut.md).
 
-## Easier option if you already use Tailscale
+## Easier option: Tailscale (no certificate to install)
 
-If your shop already runs **Tailscale**, you can skip all the certificate steps:
-`tailscale serve https / http://localhost:8000` gives you a real, automatically
-trusted address (`something.ts.net`) with no trust profile to install.
+Everything above is for a plain local network. If you run — or can run — the
+gateway on a **Linux Docker host with Tailscale**, you get a real, automatically
+trusted `https://…​.ts.net` address and can **skip Steps 4 and 5 entirely** (no
+certificate file, no trust profile). Your iPhone just needs the Tailscale app.
+
+The gateway ships a ready-made Tailscale sidecar for this. Full walkthrough —
+including the two admin-console toggles and what to do if you already run
+Tailscale as a container — is in
+**[deploy-linux-tailscale.md](deploy-linux-tailscale.md).**
 
 ## Turning it off
 
