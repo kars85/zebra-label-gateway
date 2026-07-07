@@ -344,6 +344,22 @@ def create_app() -> FastAPI:
             return FileResponse(dist_index)
         return FileResponse(STATIC_DIR / "index.html")
 
+    @app.get("/sw.js")
+    def service_worker() -> FileResponse:
+        # Served from root so its scope covers the whole app.
+        return FileResponse(
+            STATIC_DIR / "pwa" / "sw.js",
+            media_type="application/javascript",
+            headers={"Service-Worker-Allowed": "/", "Cache-Control": "no-cache"},
+        )
+
+    @app.get("/manifest.webmanifest")
+    def manifest() -> FileResponse:
+        return FileResponse(
+            STATIC_DIR / "pwa" / "manifest.webmanifest",
+            media_type="application/manifest+json",
+        )
+
     app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
     return app
 

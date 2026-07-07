@@ -240,6 +240,18 @@
   .handle[data-handle='sw'] { left: -8px; bottom: -8px; cursor: nesw-resize; }
   .handle[data-handle='se'] { right: -8px; bottom: -8px; cursor: nwse-resize; }
 
+  /* Fatter, finger-friendly handles on touch devices. */
+  @media (pointer: coarse) {
+    .handle {
+      width: 24px;
+      height: 24px;
+    }
+    .handle[data-handle='nw'] { left: -13px; top: -13px; }
+    .handle[data-handle='ne'] { right: -13px; top: -13px; }
+    .handle[data-handle='sw'] { left: -13px; bottom: -13px; }
+    .handle[data-handle='se'] { right: -13px; bottom: -13px; }
+  }
+
   .hint {
     margin: var(--sp-3) 0 0;
     font-size: var(--fs-xs);

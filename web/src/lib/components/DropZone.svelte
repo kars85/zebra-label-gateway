@@ -3,6 +3,7 @@
 
   let hot = $state(false)
   let inputEl = $state<HTMLInputElement>()
+  let cameraEl = $state<HTMLInputElement>()
 
   function pick(files: FileList | null | undefined) {
     if (files && files[0]) uploadFile(files[0])
@@ -14,6 +15,7 @@
   }
 </script>
 
+<div class="dz-wrap">
 <button
   class="dz"
   class:hot
@@ -51,13 +53,37 @@
   {#if editor.error}<span class="dz-err">{editor.error}</span>{/if}
 </button>
 
+  <input
+    bind:this={cameraEl}
+    type="file"
+    accept="image/*"
+    capture="environment"
+    hidden
+    onchange={(e) => pick(e.currentTarget.files)}
+  />
+  <button class="camera" onclick={() => cameraEl?.click()}>
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
+    Photograph a label
+  </button>
+</div>
+
 <style>
-  .dz {
+  .dz-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: var(--sp-4);
     width: min(560px, 100%);
+  }
+  .dz {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-4);
+    width: 100%;
     padding: var(--sp-12) var(--sp-6);
     border: 1.5px dashed var(--line-strong);
     border-radius: var(--r-lg);
@@ -110,6 +136,26 @@
     color: var(--err);
     font-size: var(--fs-sm);
   }
+  /* Camera capture: only meaningful on devices with a camera + touch. */
+  .camera {
+    display: none;
+    align-items: center;
+    gap: var(--sp-2);
+    min-height: var(--tap);
+    padding: 0 var(--sp-4);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    background: var(--surface-2);
+    color: var(--ink);
+    font-size: var(--fs-sm);
+    cursor: pointer;
+  }
+  @media (pointer: coarse) {
+    .camera {
+      display: inline-flex;
+    }
+  }
+
   .spinner {
     width: 26px;
     height: 26px;
