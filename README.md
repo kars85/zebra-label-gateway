@@ -117,6 +117,19 @@ python -m zebra_label_gateway.app ui        # http://127.0.0.1:8000
 `ui` falls back to a basic stdlib preview UI if the `[web]` extra is not
 installed.
 
+The editor also supports:
+
+- **Multi-page PDFs** — Prev/Next page navigation; each page normalizes and
+  prints independently.
+- **Saved label history** — every printed label is kept (preview + exact ZPL) in
+  a "Recent labels" grid; **Reprint** re-sends the stored ZPL, **Delete** removes
+  it. Persisted under the data dir (`ZLG_DATA_DIR`).
+- **Crop preset training** — in Manual crop mode, frame a real label with the
+  drag box and **Save crop as profile…**. The tuned crop/rotate/threshold is
+  written to `<data_dir>/profiles.yaml` and auto-applies next time. The same is
+  scriptable: `zebra-label-gateway save-profile --name ups_returns --crop
+  l,t,r,b --rotate 0 --threshold 128`.
+
 ## Docker
 
 The web app runs in a container that reaches the printer over TCP (no host
@@ -137,8 +150,11 @@ ZLG_PRINTER_HOST=10.10.100.107 ZLG_HOST_PORT=8420 docker compose up -d --build
 ```
 
 Environment variables: `ZLG_PRINTER_HOST` (required), `ZLG_PRINTER_PORT`
-(default 9100), `ZLG_CONFIG_DIR` (default `/app/config`). The container runs as
-a non-root user and includes a healthcheck against `/api/profiles`.
+(default 9100), `ZLG_CONFIG_DIR` (default `/app/config`), `ZLG_DATA_DIR`
+(default `/app/data`). The container runs as a non-root user and includes a
+healthcheck against `/api/profiles`. Saved-label history and trained crop
+profiles live in `/app/data`, which Compose mounts as the persistent `zlg-data`
+volume so they survive restarts.
 
 ## Windows Printer Queue
 

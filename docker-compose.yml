@@ -10,6 +10,9 @@ services:
       # Point this at your printer's IP. Port defaults to 9100.
       ZLG_PRINTER_HOST: "${ZLG_PRINTER_HOST:-10.10.100.107}"
       ZLG_PRINTER_PORT: "${ZLG_PRINTER_PORT:-9100}"
+    volumes:
+      # Persist saved-label history and trained crop profiles.
+      - zlg-data:/app/data
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/profiles',timeout=3).status==200 else 1)"]
@@ -17,3 +20,6 @@ services:
       timeout: 4s
       retries: 3
       start_period: 5s
+
+volumes:
+  zlg-data:

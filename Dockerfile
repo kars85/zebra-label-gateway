@@ -7,6 +7,7 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     ZLG_CONFIG_DIR=/app/config \
+    ZLG_DATA_DIR=/app/data \
     ZLG_PRINTER_PORT=9100
 
 WORKDIR /app
@@ -17,9 +18,14 @@ COPY src ./src
 COPY config ./config
 RUN pip install --upgrade pip && pip install ".[web]"
 
-# Run as a non-root user.
-RUN useradd --create-home --uid 10001 appuser
+# Run as a non-root user; give it a writable data dir for history + trained profiles.
+RUN useradd --create-home --uid 10001 appuser \
+    && mkdir -p /app/data \
+    && chown -R appuser /app/data
 USER appuser
+
+# Persist saved-label history and trained profiles across container restarts.
+VOLUME ["/app/data"]
 
 EXPOSE 8000
 
