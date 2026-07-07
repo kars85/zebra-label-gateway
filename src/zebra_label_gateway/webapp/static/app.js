@@ -236,6 +236,9 @@ function wireDrop() {
   drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) upload(f); });
 }
 
+// Click the 4x6 preview to toggle actual-size (100%, true pixels) inspection.
+$("outImg").addEventListener("click", () => $("outImg").parentElement.classList.toggle("zoom"));
+
 wireDrop(); wireControls(); wireCropBox(); loadProfiles();
 refreshStatus();
 $("statusPill").addEventListener("click", refreshStatus);

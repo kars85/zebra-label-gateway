@@ -61,7 +61,11 @@ main { max-width: 1200px; margin: 0 auto; padding: 1.2rem; }
 .handle.se { right: -7px; bottom: -7px; cursor: nwse-resize; }
 
 .preview-wrap { text-align: center; }
-.preview-wrap img { max-width: 100%; max-height: 70vh; border: 1px solid var(--border); image-rendering: pixelated; border-radius: 4px; }
+/* Fit view: high-quality browser downscale of the 812x1218 bitmap (not nearest-
+   neighbor, which drops pixels and looks lossy). Click to inspect true pixels. */
+.preview-wrap img { max-width: 100%; max-height: 70vh; border: 1px solid var(--border); image-rendering: auto; border-radius: 4px; cursor: zoom-in; }
+.preview-wrap.zoom { overflow: auto; max-height: 82vh; text-align: left; }
+.preview-wrap.zoom img { max-width: none; max-height: none; width: 812px; image-rendering: pixelated; cursor: zoom-out; }
 
 .control { margin-bottom: 1.1rem; }
 .control label { display: block; font-weight: 600; font-size: .82rem; margin-bottom: .35rem; }
