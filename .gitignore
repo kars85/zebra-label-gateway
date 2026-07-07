@@ -3,6 +3,11 @@ web/node_modules/
 web/dist/
 src/zebra_label_gateway/webapp/static/dist/
 
+# Desktop packaging artifacts
+packaging/build/
+packaging/dist/
+packaging/*.exe
+
 # Python
 __pycache__/
 *.py[cod]

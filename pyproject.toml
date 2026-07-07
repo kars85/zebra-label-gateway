@@ -27,6 +27,13 @@ web = [
     "uvicorn[standard]",
     "python-multipart"
 ]
+desktop = [
+    "fastapi",
+    "uvicorn[standard]",
+    "python-multipart",
+    "pywebview",
+    "pyinstaller"
+]
 
 [project.scripts]
 zebra-label-gateway = "zebra_label_gateway.app:main"

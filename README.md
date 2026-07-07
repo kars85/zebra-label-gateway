@@ -173,6 +173,15 @@ steps in [docs/tls-setup.md](docs/tls-setup.md). To print from Mail/Files via th
 iOS share sheet, build the [Apple Shortcut](docs/ios-shortcut.md) that POSTs to
 the API.
 
+## Windows desktop app
+
+A standalone Windows installer runs the gateway in a native window (WebView2) —
+no Python or Docker on the target machine. Build it with
+`pwsh packaging\build.ps1` (frontend → PyInstaller → NSIS), producing
+`ZebraLabelGateway-Setup.exe`. Printer settings are configured in-app; history
+persists under `%LOCALAPPDATA%\ZebraLabelGateway`. See
+[docs/desktop-installer.md](docs/desktop-installer.md).
+
 ## Frontend development
 
 The UI is a Vite + Svelte 5 + TypeScript app in `web/`, built to
