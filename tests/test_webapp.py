@@ -119,6 +119,20 @@ def test_history_missing_entry(client) -> None:
     assert client.delete("/api/history/nope").status_code == 404
 
 
+def test_save_profile_endpoint(client) -> None:
+    res = client.post("/api/profiles/save", json={
+        "name": "trained_ups", "crop": [0.1, 0.1, 0.8, 0.7], "rotate": 0,
+        "threshold": 120, "page_type": "letter", "description": "from real pdf"})
+    assert res.status_code == 200 and res.json()["name"] == "trained_ups"
+    names = {p["name"] for p in client.get("/api/profiles").json()}
+    assert "trained_ups" in names
+
+
+def test_save_profile_rejects_bad_rotate(client) -> None:
+    res = client.post("/api/profiles/save", json={"name": "bad", "rotate": 45})
+    assert res.status_code == 400
+
+
 def test_render_unknown_id(client) -> None:
     res = client.post("/api/render", json={"id": "nope", "profile": "generic_4x6"})
     assert res.status_code == 404

@@ -128,6 +128,34 @@ async function doPrint() {
   finally { btn.disabled = false; btn.textContent = "Print"; }
 }
 
+// ---------- crop preset training ----------
+async function saveProfile() {
+  const name = (prompt("Save this crop as a profile named (e.g. ups_returns):") || "").trim();
+  if (!name) return;
+  const payload = {
+    name,
+    description: "Trained from " + ($("srcName").textContent.split("  ")[0] || "upload"),
+    page_type: "letter",
+    rotate: state.rotate,
+    threshold: state.threshold,
+    crop: state.crop, // current manual box fractions
+  };
+  const res = await fetch("/api/profiles/save", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const d = await res.json().catch(() => ({}));
+  if (!res.ok) { toast("Save failed: " + (d.detail || res.status), "err"); return; }
+  toast(`✓ Saved profile "${name}"`, "ok");
+  await loadProfiles();
+  state.profile = name;
+  state.cropMode = "profile";
+  $("profile").value = name;
+  syncControls();
+  render();
+}
+
 // ---------- controls ----------
 function syncControls() {
   document.querySelectorAll("#cropMode button").forEach((b) =>
@@ -137,6 +165,7 @@ function syncControls() {
   $("threshold").value = state.threshold;
   $("threshVal").textContent = state.threshold;
   $("cropbox").classList.toggle("hidden", state.cropMode !== "manual");
+  $("saveProfileBtn").style.display = state.cropMode === "manual" ? "block" : "none";
   $("cropHint").textContent = state.cropMode === "manual"
     ? "Drag the box to frame the label; drag corners to resize."
     : state.cropMode === "auto" ? "Auto-cropping to the largest content block."
@@ -158,6 +187,7 @@ function wireControls() {
     state.threshold = +e.target.value; $("threshVal").textContent = state.threshold; scheduleRender();
   });
   $("printBtn").addEventListener("click", doPrint);
+  $("saveProfileBtn").addEventListener("click", saveProfile);
   $("resetBtn").addEventListener("click", () => {
     state.rotate = 0; state.threshold = 128; state.cropMode = "profile";
     $("profile").value = state.profile; syncControls(); scheduleRender();

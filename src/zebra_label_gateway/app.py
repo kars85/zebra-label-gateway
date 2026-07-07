@@ -122,6 +122,34 @@ def _cmd_profiles(args, config) -> int:
     return 0
 
 
+def _cmd_save_profile(args, config) -> int:
+    from .profiles import Profile, save_profile
+
+    if args.crop in (None, "none"):
+        crop = None
+    elif args.crop == "auto":
+        crop = "auto"
+    else:
+        try:
+            parts = tuple(float(x) for x in args.crop.split(","))
+        except ValueError:
+            print("--crop must be 'l,t,r,b' fractions, 'auto', or 'none'.", file=sys.stderr)
+            return 1
+        if len(parts) != 4:
+            print("--crop needs four comma-separated fractions.", file=sys.stderr)
+            return 1
+        crop = parts
+    try:
+        profile = Profile(name=args.name, description=args.description, page_type=args.page_type,
+                          rotate=args.rotate, threshold=args.threshold, crop=crop)
+    except ValueError as exc:
+        print(f"Invalid profile: {exc}", file=sys.stderr)
+        return 1
+    path = save_profile(profile)
+    print(f"Saved profile {args.name!r} to {path}")
+    return 0
+
+
 def _cmd_ui(args, config) -> int:
     port = args.port or 8000
     try:
@@ -180,6 +208,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_prof = sub.add_parser("profiles", help="List normalization profiles.")
     p_prof.set_defaults(func=_cmd_profiles)
+
+    p_save = sub.add_parser("save-profile", help="Save a trained crop/rotate/threshold preset.")
+    p_save.add_argument("--name", required=True)
+    p_save.add_argument("--crop", help="'l,t,r,b' fractions 0..1, 'auto', or 'none'.")
+    p_save.add_argument("--rotate", type=int, default=0)
+    p_save.add_argument("--threshold", type=int, default=128)
+    p_save.add_argument("--page-type", dest="page_type", default="letter")
+    p_save.add_argument("--description", default="")
+    p_save.set_defaults(func=_cmd_save_profile)
 
     p_ui = sub.add_parser("ui", help="Launch the local preview web UI.")
     p_ui.add_argument("--bind", default="127.0.0.1")

@@ -68,6 +68,15 @@ class RenderParams(BaseModel):
     crop_mode: str = "profile"  # "profile" | "auto" | "manual" | "none"
 
 
+class SaveProfileParams(BaseModel):
+    name: str
+    description: str = ""
+    page_type: str = "letter"
+    rotate: int = 0
+    threshold: int = 128
+    crop: str | list[float] | None = None  # None | "auto" | [l, t, r, b]
+
+
 def _png_bytes(image: Image.Image) -> bytes:
     buffer = io.BytesIO()
     image.save(buffer, format="PNG")
@@ -126,6 +135,28 @@ def create_app() -> FastAPI:
             }
             for name, profile in sorted(load_profiles().items())
         ]
+
+    @app.post("/api/profiles/save")
+    def api_save_profile(spec: SaveProfileParams) -> dict:
+        from ..profiles import Profile, save_profile
+
+        name = spec.name.strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Profile name is required.")
+        crop = tuple(spec.crop) if isinstance(spec.crop, list) else spec.crop
+        try:
+            profile = Profile(
+                name=name,
+                description=spec.description,
+                page_type=spec.page_type,
+                rotate=spec.rotate,
+                threshold=spec.threshold,
+                crop=crop,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        save_profile(profile)
+        return {"ok": True, "name": name}
 
     @app.get("/api/status")
     def api_status() -> dict:

@@ -88,20 +88,10 @@ BUILTIN_PROFILES: dict[str, Profile] = {
 DEFAULT_PROFILE_NAME = "generic_4x6"
 
 
-def load_profiles(yaml_path: Path | None = None) -> dict[str, Profile]:
-    """Return built-in profiles merged with any overrides in ``config/profiles.yaml``.
-
-    A YAML entry may override individual fields of a built-in profile or define a
-    brand-new one; ``name`` defaults to the YAML key.
-    """
-    profiles = dict(BUILTIN_PROFILES)
-    if yaml_path is None:
-        from ..config import config_path
-
-        yaml_path = config_path("profiles.yaml")
+def _merge_yaml(profiles: dict[str, Profile], yaml_path: Path) -> None:
+    """Apply the profile overrides in ``yaml_path`` onto ``profiles`` in place."""
     if not yaml_path.exists():
-        return profiles
-
+        return
     import yaml
 
     data = yaml.safe_load(yaml_path.read_text(encoding="utf-8")) or {}
@@ -120,7 +110,57 @@ def load_profiles(yaml_path: Path | None = None) -> dict[str, Profile]:
             )
         else:
             profiles[name] = profile_from_dict(overrides)
+
+
+def load_profiles(yaml_path: Path | None = None) -> dict[str, Profile]:
+    """Return built-in profiles merged with YAML overrides.
+
+    With no ``yaml_path``, merges the baked ``config/profiles.yaml`` then the
+    writable ``<data_dir>/profiles.yaml`` (trained presets win). A YAML entry may
+    override fields of a built-in profile or define a brand-new one.
+    """
+    profiles = dict(BUILTIN_PROFILES)
+    if yaml_path is not None:
+        _merge_yaml(profiles, yaml_path)
+        return profiles
+
+    from ..config import config_path, data_dir
+
+    _merge_yaml(profiles, config_path("profiles.yaml"))
+    _merge_yaml(profiles, data_dir() / "profiles.yaml")
     return profiles
+
+
+def save_profile(profile: Profile, target: Path | None = None) -> Path:
+    """Persist ``profile`` into the writable ``<data_dir>/profiles.yaml``.
+
+    Used by the crop-training flow: tune a crop against a real PDF, then save it
+    as a named preset that later auto-applies. Returns the file written.
+    """
+    import yaml
+
+    from ..config import data_dir
+
+    path = target or (data_dir() / "profiles.yaml")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    document = {}
+    if path.exists():
+        document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    entries = document.setdefault("profiles", {})
+
+    if profile.crop is None or profile.crop == "auto":
+        crop_value = profile.crop
+    else:
+        crop_value = [round(float(v), 4) for v in profile.crop]
+    entries[profile.name] = {
+        "description": profile.description,
+        "page_type": profile.page_type,
+        "rotate": profile.rotate,
+        "threshold": profile.threshold,
+        "crop": crop_value,
+    }
+    path.write_text(yaml.safe_dump(document, sort_keys=False), encoding="utf-8")
+    return path
 
 
 def get_profile(name: str | None = None, yaml_path: Path | None = None) -> Profile:

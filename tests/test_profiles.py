@@ -6,6 +6,7 @@ from zebra_label_gateway.profiles import (
     get_profile,
     load_profiles,
     profile_from_dict,
+    save_profile,
 )
 
 
@@ -41,6 +42,25 @@ def test_invalid_threshold_rejected() -> None:
 def test_letter_profiles_auto_crop() -> None:
     assert get_profile("generic_letter_embedded").crop == "auto"
     assert get_profile("generic_4x6").crop is None
+
+
+def test_save_profile_persists_and_reloads(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("ZLG_DATA_DIR", str(tmp_path))
+    save_profile(Profile(name="ups_returns", description="trained", page_type="letter",
+                         rotate=90, threshold=140, crop=(0.05, 0.05, 0.5, 0.6)))
+
+    profiles = load_profiles()  # merges builtins + config + data dir
+    assert "ups_returns" in profiles
+    trained = profiles["ups_returns"]
+    assert trained.rotate == 90 and trained.threshold == 140
+    assert tuple(round(v, 2) for v in trained.crop) == (0.05, 0.05, 0.5, 0.6)
+
+
+def test_save_profile_updates_existing(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("ZLG_DATA_DIR", str(tmp_path))
+    save_profile(Profile(name="ups", crop="auto", threshold=128))
+    save_profile(Profile(name="ups", crop=(0.1, 0.1, 0.9, 0.9), threshold=150))
+    assert load_profiles()["ups"].threshold == 150
 
 
 def test_yaml_overrides_builtin(tmp_path) -> None:

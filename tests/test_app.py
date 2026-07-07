@@ -38,3 +38,20 @@ def test_print_save_only(tmp_path, capsys) -> None:
 def test_print_missing_input(tmp_path) -> None:
     code = main(["print", "--input", str(tmp_path / "nope.pdf"), "--save-only"])
     assert code == 1
+
+
+def test_save_profile_command(tmp_path, monkeypatch, capsys) -> None:
+    monkeypatch.setenv("ZLG_DATA_DIR", str(tmp_path))
+    code = main(["save-profile", "--name", "cli_prof", "--crop", "0.1,0.1,0.9,0.9",
+                 "--rotate", "90", "--threshold", "130"])
+    assert code == 0
+    assert (tmp_path / "profiles.yaml").exists()
+
+    from zebra_label_gateway.profiles import load_profiles
+
+    assert load_profiles()["cli_prof"].rotate == 90
+
+
+def test_save_profile_command_bad_crop(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("ZLG_DATA_DIR", str(tmp_path))
+    assert main(["save-profile", "--name", "x", "--crop", "0.1,0.2"]) == 1
