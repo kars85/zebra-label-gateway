@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Word (Office) add-in manifest for Zebra Label Gateway.
+  Replace https://gateway.local with your TLS gateway host (see docs/tls-setup.md).
+  The task pane is served BY the gateway, so its /api calls are same-origin.
+-->
+<OfficeApp xmlns="http://schemas.microsoft.com/office/appforoffice/1.1"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:bt="http://schemas.microsoft.com/office/officeappbasictypes/1.0"
+           xmlns:ov="http://schemas.microsoft.com/office/taskpaneappversionoverrides"
+           xsi:type="TaskPaneApp">
+  <Id>b5c9e8a2-1f3d-4c6e-9a7b-2d8f0e1a4c6d</Id>
+  <Version>1.0.0</Version>
+  <ProviderName>Zebra Label Gateway</ProviderName>
+  <DefaultLocale>en-US</DefaultLocale>
+  <DisplayName DefaultValue="Zebra Label Gateway"/>
+  <Description DefaultValue="Send the current Word document to the Zebra label printer."/>
+  <IconUrl DefaultValue="https://gateway.local/static/pwa/icons/icon-192.png"/>
+  <HighResolutionIconUrl DefaultValue="https://gateway.local/static/pwa/icons/icon-512.png"/>
+  <SupportUrl DefaultValue="https://github.com/kars85/zebra-label-gateway"/>
+  <AppDomains>
+    <AppDomain>https://gateway.local</AppDomain>
+  </AppDomains>
+  <Hosts>
+    <Host Name="Document"/>
+  </Hosts>
+  <DefaultSettings>
+    <SourceLocation DefaultValue="https://gateway.local/static/addin/taskpane.html"/>
+  </DefaultSettings>
+  <Permissions>ReadWriteDocument</Permissions>
+
+  <VersionOverrides xmlns="http://schemas.microsoft.com/office/taskpaneappversionoverrides" xsi:type="VersionOverridesV1_0">
+    <Hosts>
+      <Host xsi:type="Document">
+        <DesktopFormFactor>
+          <ExtensionPoint xsi:type="PrimaryCommandSurface">
+            <OfficeTab id="TabHome">
+              <Group id="zlg.group">
+                <Label resid="grpLabel"/>
+                <Icon>
+                  <bt:Image size="16" resid="icon"/>
+                  <bt:Image size="32" resid="icon"/>
+                  <bt:Image size="80" resid="icon"/>
+                </Icon>
+                <Control xsi:type="Button" id="zlg.open">
+                  <Label resid="btnLabel"/>
+                  <Supertip>
+                    <Title resid="btnLabel"/>
+                    <Description resid="btnTip"/>
+                  </Supertip>
+                  <Icon>
+                    <bt:Image size="16" resid="icon"/>
+                    <bt:Image size="32" resid="icon"/>
+                    <bt:Image size="80" resid="icon"/>
+                  </Icon>
+                  <Action xsi:type="ShowTaskpane">
+                    <TaskpaneId>zlgTaskpane</TaskpaneId>
+                    <SourceLocation resid="taskpaneUrl"/>
+                  </Action>
+                </Control>
+              </Group>
+            </OfficeTab>
+          </ExtensionPoint>
+        </DesktopFormFactor>
+      </Host>
+    </Hosts>
+    <Resources>
+      <bt:Images>
+        <bt:Image id="icon" DefaultValue="https://gateway.local/static/pwa/icons/icon-192.png"/>
+      </bt:Images>
+      <bt:Urls>
+        <bt:Url id="taskpaneUrl" DefaultValue="https://gateway.local/static/addin/taskpane.html"/>
+      </bt:Urls>
+      <bt:ShortStrings>
+        <bt:String id="grpLabel" DefaultValue="Label Gateway"/>
+        <bt:String id="btnLabel" DefaultValue="Label Gateway"/>
+      </bt:ShortStrings>
+      <bt:LongStrings>
+        <bt:String id="btnTip" DefaultValue="Send this document to the Zebra label printer."/>
+      </bt:LongStrings>
+    </Resources>
+  </VersionOverrides>
+</OfficeApp>

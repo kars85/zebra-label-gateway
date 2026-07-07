@@ -149,6 +149,19 @@ def test_status_offline(client, monkeypatch) -> None:
     assert data["ok"] is False
 
 
+def test_cors_enabled_via_env(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("ZLG_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setenv("ZLG_CORS_ORIGINS", "https://word.example")
+    c = TestClient(server.create_app())
+    res = c.get("/api/profiles", headers={"Origin": "https://word.example"})
+    assert res.headers.get("access-control-allow-origin") == "https://word.example"
+
+
+def test_no_cors_by_default(client) -> None:
+    res = client.get("/api/profiles", headers={"Origin": "https://word.example"})
+    assert "access-control-allow-origin" not in res.headers
+
+
 def test_env_overrides_printer(monkeypatch) -> None:
     from zebra_label_gateway.config import PrinterConfig
 

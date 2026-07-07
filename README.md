@@ -182,6 +182,19 @@ no Python or Docker on the target machine. Build it with
 persists under `%LOCALAPPDATA%\ZebraLabelGateway`. See
 [docs/desktop-installer.md](docs/desktop-installer.md).
 
+## Application plugins
+
+Send a document straight to the gateway from your authoring app:
+
+- **LibreOffice** — an `.oxt` extension adds *Send / Send & Print* to Tools →
+  Add-Ons and a toolbar button.
+- **Microsoft Word** — an Office-JS task-pane add-in adds a ribbon button
+  (needs the HTTPS gateway host).
+- **Adobe / everything else** — use the LabelDrop watched folder instead of a
+  per-app plugin.
+
+Build and install steps are in [docs/plugins.md](docs/plugins.md).
+
 ## Frontend development
 
 The UI is a Vite + Svelte 5 + TypeScript app in `web/`, built to

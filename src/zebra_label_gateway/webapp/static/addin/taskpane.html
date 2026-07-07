@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zebra Label Gateway</title>
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+    <style>
+      :root { color-scheme: light dark; --green: #5f9652; --line: #8884; --ink: Canvas; }
+      * { box-sizing: border-box; }
+      body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        margin: 0; padding: 16px; color: CanvasText; background: Canvas;
+      }
+      h1 { font-size: 1rem; margin: 0 0 4px; }
+      p.sub { margin: 0 0 16px; font-size: .8rem; opacity: .7; }
+      button {
+        width: 100%; margin-bottom: 8px; padding: 10px 12px; font: inherit;
+        border: 1px solid var(--line); border-radius: 6px; background: Canvas;
+        color: CanvasText; cursor: pointer;
+      }
+      button.primary { background: var(--green); border-color: var(--green); color: #fff; font-weight: 600; }
+      button:disabled { opacity: .5; cursor: not-allowed; }
+      #status { margin-top: 12px; font-size: .82rem; white-space: pre-wrap; padding: 8px; border-radius: 6px; }
+      #status.ok { background: #5f965222; }
+      #status.err { background: #d94b3b22; color: #d94b3b; }
+      .cfg { margin-top: 16px; font-size: .75rem; opacity: .7; }
+      .cfg input { width: 100%; padding: 6px; margin-top: 4px; font: inherit; }
+    </style>
+  </head>
+  <body>
+    <h1>🦓 Label Gateway</h1>
+    <p class="sub">Send this document to the Zebra label printer.</p>
+
+    <button id="send" class="primary" disabled>Send to Label Gateway</button>
+    <button id="print" disabled>Send &amp; Print label</button>
+
+    <div id="status"></div>
+
+    <label class="cfg">Gateway address
+      <input id="gw" type="text" placeholder="https://gateway.local" />
+    </label>
+
+    <script src="/static/addin/taskpane.js"></script>
+  </body>
+</html>

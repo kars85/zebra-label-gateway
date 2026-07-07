@@ -37,9 +37,29 @@ resolution are verified against a real LibreOffice via `unopkg` + UNO.
 
 ## Microsoft Word (Office add-in)
 
-*Planned next* — an Office-JS task-pane add-in that exports the document as PDF
-and posts it to the gateway. Requires the gateway to be reachable over HTTPS
-(see `docs/tls-setup.md`) and a CORS allowance on the API.
+An Office-JS task-pane add-in adds a **Label Gateway** button to the Word ribbon.
+It exports the document as PDF (`getFileAsync`) and posts it to `/api/upload`
+(and `/api/print`). The task pane is served **by the gateway**, so its API calls
+are same-origin — no CORS needed.
+
+### Requirements
+
+- The gateway reachable over **HTTPS** (`docs/tls-setup.md`) — Office add-ins
+  are HTTPS-only. Replace `https://gateway.local` in `plugins/word/manifest.xml`
+  with your TLS host.
+- If you host the task pane on a *different* origin than the API, enable CORS on
+  the gateway with `ZLG_CORS_ORIGINS=https://your-addin-host` (comma-separated).
+
+### Sideload
+
+1. Edit `plugins/word/manifest.xml` — set your gateway host in the URLs.
+2. Word → **Home → Add-ins → More Add-ins → My Add-ins → Upload My Add-in** →
+   pick `manifest.xml`. (Or use a shared-folder catalog / central deployment.)
+3. Click **Label Gateway** on the ribbon → **Send** or **Send & Print**.
+
+The manifest validates against Microsoft's Office add-in schema
+(`npx office-addin-manifest validate plugins/word/manifest.xml`). The task pane
+assets live in the gateway at `/static/addin/`.
 
 ## Adobe Acrobat
 

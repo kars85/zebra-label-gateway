@@ -135,6 +135,21 @@ def current_printer() -> PrinterConfig:
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Zebra Label Gateway", version="1.0")
+
+    # Optional CORS for cross-origin callers (e.g. an Office add-in hosted
+    # elsewhere). Same-origin callers — including the bundled add-in — don't
+    # need this. Set ZLG_CORS_ORIGINS to a comma-separated origin list.
+    cors = os.environ.get("ZLG_CORS_ORIGINS")
+    if cors:
+        from fastapi.middleware.cors import CORSMiddleware
+
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[o.strip() for o in cors.split(",") if o.strip()],
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
     sessions: OrderedDict[str, _Session] = OrderedDict()
     history = HistoryStore()
 
