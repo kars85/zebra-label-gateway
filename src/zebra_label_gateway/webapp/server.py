@@ -23,7 +23,7 @@ from pydantic import BaseModel
 from ..config import PrinterConfig, load_app_config
 from ..image_processor import LABEL_HEIGHT_DOTS, LABEL_WIDTH_DOTS
 from ..input_detection import detect_input_type
-from ..pdf_renderer import render_first_page_from_bytes
+from ..pdf_renderer import pdf_page_count_from_bytes, render_page_from_bytes
 from ..pipeline import normalize_with_profile
 from ..printer_tcp import decode_status, format_status, query_status_raw, send_zpl_tcp
 from ..profiles import DEFAULT_PROFILE_NAME, get_profile, load_profiles
@@ -36,15 +36,30 @@ MAX_SESSIONS = 32
 
 
 class _Session:
-    __slots__ = ("source", "name")
+    """An uploaded file. PDFs keep their bytes so any page can be rendered lazily."""
 
-    def __init__(self, source: Image.Image, name: str) -> None:
-        self.source = source  # full-resolution RGB
+    __slots__ = ("kind", "name", "data", "image", "page_count", "_page_cache")
+
+    def __init__(self, kind: str, name: str, data: bytes | None = None,
+                 image: Image.Image | None = None, page_count: int = 1) -> None:
+        self.kind = kind
         self.name = name
+        self.data = data  # PDF bytes (kind == "pdf")
+        self.image = image  # RGB image (kind == "image")
+        self.page_count = page_count
+        self._page_cache: dict[int, Image.Image] = {}
+
+    def page_image(self, page: int = 0) -> Image.Image:
+        if self.kind == "image":
+            return self.image
+        if page not in self._page_cache:
+            self._page_cache[page] = render_page_from_bytes(self.data, page)
+        return self._page_cache[page]
 
 
 class RenderParams(BaseModel):
     id: str
+    page: int = 0
     profile: str = DEFAULT_PROFILE_NAME
     rotate: int | None = None
     threshold: int | None = None
@@ -86,14 +101,15 @@ def create_app() -> FastAPI:
             crop=crop,
         )
 
-    def _render(params: RenderParams) -> tuple[Image.Image, str]:
+    def _render(params: RenderParams) -> tuple[Image.Image, str, _Session]:
         session = sessions.get(params.id)
         if session is None:
             raise HTTPException(status_code=404, detail="Unknown or expired upload id.")
         profile = _resolve_profile(params)
-        preview = normalize_with_profile(session.source, profile)
+        source = session.page_image(params.page)
+        preview = normalize_with_profile(source, profile)
         zpl = build_raster_label_zpl(preview, LABEL_WIDTH_DOTS, LABEL_HEIGHT_DOTS)
-        return preview, zpl
+        return preview, zpl, session
 
     @app.get("/api/profiles")
     def api_profiles() -> list[dict]:
@@ -131,9 +147,12 @@ def create_app() -> FastAPI:
         kind = detect_input_type(name)
         try:
             if kind == "pdf":
-                source = render_first_page_from_bytes(raw)
+                page_count = pdf_page_count_from_bytes(raw)
+                session = _Session("pdf", name, data=raw, page_count=page_count)
+                source = session.page_image(0)  # render + cache page 0
             elif kind == "image":
                 source = Image.open(io.BytesIO(raw)).convert("RGB")
+                session = _Session("image", name, image=source, page_count=1)
             else:
                 raise HTTPException(status_code=400, detail=f"Unsupported file type: {name}")
         except HTTPException:
@@ -142,7 +161,7 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=400, detail=f"Could not read {name}: {exc}") from exc
 
         session_id = uuid.uuid4().hex
-        sessions[session_id] = _Session(source, name)
+        sessions[session_id] = session
         while len(sessions) > MAX_SESSIONS:
             sessions.popitem(last=False)
 
@@ -154,22 +173,23 @@ def create_app() -> FastAPI:
             "name": name,
             "width": source.width,
             "height": source.height,
+            "pages": session.page_count,
             "source_url": f"/api/source/{session_id}",
             "suggested_profile": suggested,
         }
 
     @app.get("/api/source/{session_id}")
-    def api_source(session_id: str) -> Response:
+    def api_source(session_id: str, page: int = 0) -> Response:
         session = sessions.get(session_id)
         if session is None:
             raise HTTPException(status_code=404, detail="Unknown upload id.")
-        preview = session.source.copy()
+        preview = session.page_image(page).copy()
         preview.thumbnail((SOURCE_PREVIEW_MAX, SOURCE_PREVIEW_MAX))
         return Response(content=_png_bytes(preview), media_type="image/png")
 
     @app.post("/api/render")
     def api_render(params: RenderParams) -> Response:
-        preview, zpl = _render(params)
+        preview, zpl, _session = _render(params)
         return Response(
             content=_png_bytes(preview),
             media_type="image/png",
@@ -178,7 +198,7 @@ def create_app() -> FastAPI:
 
     @app.post("/api/print")
     def api_print(params: RenderParams) -> JSONResponse:
-        _, zpl = _render(params)
+        preview, zpl, session = _render(params)
         try:
             send_zpl_tcp(zpl, printer.tcp_host, printer.tcp_port)
         except OSError as exc:

@@ -15,7 +15,7 @@ from PIL import Image
 from .crop_detector import apply_crop
 from .image_processor import LABEL_HEIGHT_DOTS, LABEL_WIDTH_DOTS, normalize_image
 from .input_detection import detect_input_type
-from .pdf_renderer import render_first_page_to_image
+from .pdf_renderer import render_page_to_image
 from .profiles import Profile, get_profile
 from .zpl_encoder import build_raster_label_zpl
 
@@ -29,12 +29,12 @@ class RenderResult:
     profile_name: str
 
 
-def load_source_image(input_path: str | Path) -> Image.Image:
-    """Turn a PDF or image path into a single RGB image (first page for PDFs)."""
+def load_source_image(input_path: str | Path, page: int = 0) -> Image.Image:
+    """Turn a PDF or image path into a single RGB image (page ``page`` for PDFs)."""
     path = Path(input_path)
     kind = detect_input_type(path)
     if kind == "pdf":
-        return render_first_page_to_image(path)
+        return render_page_to_image(path, page)
     if kind == "image":
         return Image.open(path).convert("RGB")
     raise ValueError(f"Unsupported input type {kind!r} for {path.name}; expected a PDF or image.")
@@ -66,13 +66,14 @@ def normalize_with_profile(
 def render_input(
     input_path: str | Path,
     profile: Profile | str | None = None,
+    page: int = 0,
     width: int = LABEL_WIDTH_DOTS,
     height: int = LABEL_HEIGHT_DOTS,
 ) -> RenderResult:
-    """Full pipeline: path + profile -> normalized preview + raster ZPL."""
+    """Full pipeline: path + profile (+ PDF page) -> normalized preview + raster ZPL."""
     if not isinstance(profile, Profile):
         profile = get_profile(profile)
-    source = load_source_image(input_path)
+    source = load_source_image(input_path, page=page)
     preview = normalize_with_profile(source, profile, width=width, height=height)
     zpl = build_raster_label_zpl(preview, width_dots=width, height_dots=height)
     return RenderResult(preview=preview, zpl=zpl, profile_name=profile.name)

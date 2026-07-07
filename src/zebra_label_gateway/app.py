@@ -57,7 +57,7 @@ def _cmd_print(args, config) -> int:
     if not args.input.exists():
         print(f"Input not found: {args.input}", file=sys.stderr)
         return 1
-    result = render_input(args.input, args.profile)
+    result = render_input(args.input, args.profile, page=max(0, args.page - 1))
     args.output_dir.mkdir(parents=True, exist_ok=True)
     zpl_path = args.output_dir / f"{args.input.stem}.zpl"
     preview_path = args.output_dir / f"{args.input.stem}.preview.png"
@@ -154,6 +154,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_print = sub.add_parser("print", help="Normalize a PDF/image and optionally print it.")
     p_print.add_argument("--input", required=True, type=Path)
+    p_print.add_argument("--page", type=int, default=1, help="1-based PDF page to print. Defaults to 1.")
     p_print.add_argument("--profile", default=DEFAULT_PROFILE_NAME)
     p_print.add_argument("--host")
     p_print.add_argument("--port", type=int)

@@ -6,6 +6,8 @@
 const $ = (id) => document.getElementById(id);
 const state = {
   id: null,
+  page: 0,
+  pages: 1,
   profile: "generic_4x6",
   cropMode: "profile",   // profile | auto | manual | none
   rotate: 0,
@@ -36,16 +38,39 @@ async function upload(file) {
   if (!res.ok) { toast("Upload failed: " + (await res.text()), "err"); return; }
   const data = await res.json();
   state.id = data.id;
+  state.page = 0;
+  state.pages = data.pages || 1;
   state.profile = data.suggested_profile;
   state.cropMode = "profile";
   state.rotate = 0;
   state.threshold = 128;
   $("srcName").textContent = data.name + `  (${data.width}×${data.height})`;
-  $("srcImg").src = data.source_url + "?t=" + Date.now();
   $("profile").value = state.profile;
   syncControls();
+  syncPageNav();
+  loadSourcePage();
   $("editor").classList.remove("hidden");
   $("srcImg").onload = () => { positionCropBox(); render(); };
+}
+
+function loadSourcePage() {
+  $("srcImg").src = `/api/source/${state.id}?page=${state.page}&t=` + Date.now();
+}
+
+function syncPageNav() {
+  const nav = $("pageNav");
+  nav.classList.toggle("hidden", state.pages <= 1);
+  $("pageLabel").textContent = `Page ${state.page + 1} of ${state.pages}`;
+  $("pagePrev").disabled = state.page <= 0;
+  $("pageNext").disabled = state.page >= state.pages - 1;
+}
+
+function gotoPage(delta) {
+  const next = Math.min(state.pages - 1, Math.max(0, state.page + delta));
+  if (next === state.page) return;
+  state.page = next;
+  syncPageNav();
+  loadSourcePage(); // onload triggers render()
 }
 
 // ---------- render (debounced) ----------
@@ -56,6 +81,7 @@ async function render() {
   $("renderSpin").classList.remove("hidden");
   const payload = {
     id: state.id,
+    page: state.page,
     profile: state.profile,
     rotate: state.rotate,
     threshold: state.threshold,
@@ -90,7 +116,7 @@ async function doPrint() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: state.id, profile: state.profile, rotate: state.rotate,
+        id: state.id, page: state.page, profile: state.profile, rotate: state.rotate,
         threshold: state.threshold, crop_mode: state.cropMode,
         crop: state.cropMode === "manual" ? state.crop : null,
       }),
@@ -238,6 +264,8 @@ function wireDrop() {
 
 // Click the 4x6 preview to toggle actual-size (100%, true pixels) inspection.
 $("outImg").addEventListener("click", () => $("outImg").parentElement.classList.toggle("zoom"));
+$("pagePrev").addEventListener("click", () => gotoPage(-1));
+$("pageNext").addEventListener("click", () => gotoPage(1));
 
 wireDrop(); wireControls(); wireCropBox(); loadProfiles();
 refreshStatus();

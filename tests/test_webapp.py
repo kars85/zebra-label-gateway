@@ -64,6 +64,33 @@ def test_upload_render_print_flow(client, monkeypatch) -> None:
     assert sent["zpl"].startswith("^XA")
 
 
+def _multipage_pdf_bytes(pages: int = 3) -> bytes:
+    doc = fitz.open()
+    for i in range(pages):
+        doc.new_page(width=288, height=432).insert_text((20, 40), f"PAGE {i + 1}")
+    out = io.BytesIO()
+    doc.save(out)
+    doc.close()
+    return out.getvalue()
+
+
+def test_multipage_upload_and_page_render(client) -> None:
+    up = client.post("/api/upload", files={"file": ("multi.pdf", _multipage_pdf_bytes(3), "application/pdf")})
+    assert up.status_code == 200
+    session = up.json()
+    assert session["pages"] == 3
+    sid = session["id"]
+
+    # Each page's source preview is fetchable.
+    for page in range(3):
+        res = client.get(f"/api/source/{sid}?page={page}")
+        assert res.status_code == 200 and res.content[:8] == b"\x89PNG\r\n\x1a\n"
+
+    # Rendering page 2 works.
+    r = client.post("/api/render", json={"id": sid, "page": 2, "profile": "generic_4x6"})
+    assert r.status_code == 200 and int(r.headers["X-Zpl-Bytes"]) > 0
+
+
 def test_render_unknown_id(client) -> None:
     res = client.post("/api/render", json={"id": "nope", "profile": "generic_4x6"})
     assert res.status_code == 404
