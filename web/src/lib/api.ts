@@ -86,6 +86,14 @@ export const api = {
       body: JSON.stringify(params),
     }).then(json<{ ok: boolean; detail: string; zpl_bytes: number }>),
 
+  settings: () => fetch('/api/settings').then(json<{ printer_host: string; printer_port: number; env_locked: boolean }>),
+  saveSettings: (spec: { printer_host?: string; printer_port?: number }) =>
+    fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(spec),
+    }).then(json<{ ok: boolean; printer_host: string; printer_port: number }>),
+
   history: () => fetch('/api/history').then(json<HistoryEntry[]>),
   reprint: (id: string) => fetch(`/api/history/${id}/reprint`, { method: 'POST' }).then(json<{ ok: boolean; detail: string }>),
   deleteHistory: (id: string) => fetch(`/api/history/${id}`, { method: 'DELETE' }).then(json<{ ok: boolean }>),

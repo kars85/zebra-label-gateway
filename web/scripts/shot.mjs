@@ -59,6 +59,15 @@ if (has('zoom')) {
   await new Promise((r) => setTimeout(r, 400))
 }
 
+if (has('settings')) {
+  await page.click('[title=Settings]')
+  await new Promise((r) => setTimeout(r, 600))
+}
+if (has('status')) {
+  await page.click('.pill')
+  await new Promise((r) => setTimeout(r, 700))
+}
+
 await new Promise((r) => setTimeout(r, 300))
 await page.screenshot({ path: out })
 await browser.close()

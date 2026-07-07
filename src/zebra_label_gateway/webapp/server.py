@@ -8,6 +8,7 @@ configuration so the container can be pointed at a printer without editing files
 from __future__ import annotations
 
 import io
+import json
 import os
 import uuid
 from collections import OrderedDict
@@ -20,7 +21,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 from pydantic import BaseModel
 
-from ..config import PrinterConfig, load_app_config
+from ..config import PrinterConfig, data_dir, load_app_config
 from ..image_processor import LABEL_HEIGHT_DOTS, LABEL_WIDTH_DOTS
 from ..input_detection import detect_input_type
 from ..pdf_renderer import pdf_page_count_from_bytes, render_page_from_bytes
@@ -68,6 +69,11 @@ class RenderParams(BaseModel):
     crop_mode: str = "profile"  # "profile" | "auto" | "manual" | "none"
 
 
+class SettingsParams(BaseModel):
+    printer_host: str | None = None
+    printer_port: int | None = None
+
+
 class SaveProfileParams(BaseModel):
     name: str
     description: str = ""
@@ -90,10 +96,46 @@ def resolve_printer(base: PrinterConfig) -> PrinterConfig:
     return replace(base, tcp_host=host, tcp_port=int(port) if port else base.tcp_port)
 
 
+def _settings_path() -> Path:
+    return data_dir() / "settings.json"
+
+
+def load_settings() -> dict:
+    path = _settings_path()
+    if path.exists():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            return {}
+    return {}
+
+
+def save_settings(data: dict) -> None:
+    path = _settings_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+
+
+def env_printer_locked() -> bool:
+    return bool(os.environ.get("ZLG_PRINTER_HOST"))
+
+
+def current_printer() -> PrinterConfig:
+    """Resolve the printer at call time: base config < saved settings < env vars.
+
+    Env wins (so a container's ZLG_PRINTER_HOST is authoritative); when unset —
+    e.g. a desktop install — the in-app Settings value applies.
+    """
+    base = load_app_config().printer
+    settings = load_settings()
+    host = os.environ.get("ZLG_PRINTER_HOST") or settings.get("printer_host") or base.tcp_host
+    port = os.environ.get("ZLG_PRINTER_PORT") or settings.get("printer_port") or base.tcp_port
+    return replace(base, tcp_host=str(host), tcp_port=int(port))
+
+
 def create_app() -> FastAPI:
     app = FastAPI(title="Zebra Label Gateway", version="1.0")
     sessions: OrderedDict[str, _Session] = OrderedDict()
-    printer = resolve_printer(load_app_config().printer)
     history = HistoryStore()
 
     def _resolve_profile(params: RenderParams):
@@ -160,6 +202,7 @@ def create_app() -> FastAPI:
 
     @app.get("/api/status")
     def api_status() -> dict:
+        printer = current_printer()
         try:
             raw = query_status_raw(printer.tcp_host, printer.tcp_port, timeout=5.0)
         except OSError as exc:
@@ -172,6 +215,26 @@ def create_app() -> FastAPI:
             "report": format_status(status),
             "flags": {k: v for k, v in status.items() if k != "strings"},
         }
+
+    @app.get("/api/settings")
+    def api_get_settings() -> dict:
+        printer = current_printer()
+        return {
+            "printer_host": printer.tcp_host,
+            "printer_port": printer.tcp_port,
+            "env_locked": env_printer_locked(),
+        }
+
+    @app.post("/api/settings")
+    def api_set_settings(spec: SettingsParams) -> dict:
+        data = load_settings()
+        if spec.printer_host is not None:
+            data["printer_host"] = spec.printer_host.strip()
+        if spec.printer_port is not None:
+            data["printer_port"] = int(spec.printer_port)
+        save_settings(data)
+        printer = current_printer()
+        return {"ok": True, "printer_host": printer.tcp_host, "printer_port": printer.tcp_port}
 
     @app.post("/api/upload")
     async def api_upload(file: UploadFile) -> dict:
@@ -232,6 +295,7 @@ def create_app() -> FastAPI:
     @app.post("/api/print")
     def api_print(params: RenderParams) -> JSONResponse:
         preview, zpl, session = _render(params)
+        printer = current_printer()
         try:
             send_zpl_tcp(zpl, printer.tcp_host, printer.tcp_port)
         except OSError as exc:
@@ -259,6 +323,7 @@ def create_app() -> FastAPI:
         zpl = history.zpl(entry_id)
         if zpl is None:
             raise HTTPException(status_code=404, detail="No such history entry.")
+        printer = current_printer()
         try:
             send_zpl_tcp(zpl, printer.tcp_host, printer.tcp_port)
         except OSError as exc:
