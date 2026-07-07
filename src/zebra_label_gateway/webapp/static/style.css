@@ -30,11 +30,14 @@ header h1 { font-size: 1.05rem; margin: 0; letter-spacing: .2px; }
 main { max-width: 1200px; margin: 0 auto; padding: 1.2rem; }
 
 .drop {
+  display: block; width: 100%;
   border: 2px dashed var(--border); border-radius: 12px; padding: 3rem 1rem;
   text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
 }
 .drop.hot { border-color: var(--accent); background: var(--panel); }
 .drop input { display: none; }
+/* Keep drag events on the label itself so highlighting doesn't flicker over children. */
+.drop > *:not(input) { pointer-events: none; }
 .muted { opacity: .6; }
 
 .editor { display: grid; grid-template-columns: 1fr 320px 1fr; gap: 1rem; margin-top: 1rem; }
