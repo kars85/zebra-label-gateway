@@ -2,7 +2,7 @@
 
 Subcommands:
   test-label   generate and send the built-in ZPL test label
-  print        normalize a PDF/image to 4x6 ZPL and optionally print it
+  print        normalize a PDF/image to 4x6 ZPL (or send a .zpl file raw) and optionally print it
   watch        run the LabelDrop watched-folder workflow
   status       query printer host status (~HS)
   diagnose     dump printer SGD diagnostics
@@ -20,6 +20,7 @@ import sys
 from pathlib import Path
 
 from .config import PrinterConfig, load_app_config
+from .input_detection import detect_input_type, read_zpl
 from .pipeline import render_input
 from .printer_tcp import decode_status, diagnose, format_status, query_status_raw, send_zpl_tcp
 from .profiles import DEFAULT_PROFILE_NAME, load_profiles
@@ -57,6 +58,8 @@ def _cmd_print(args, config) -> int:
     if not args.input.exists():
         print(f"Input not found: {args.input}", file=sys.stderr)
         return 1
+    if detect_input_type(args.input) == "zpl":
+        return _print_raw_zpl(args, config)
     result = render_input(args.input, args.profile, page=max(0, args.page - 1))
     args.output_dir.mkdir(parents=True, exist_ok=True)
     zpl_path = args.output_dir / f"{args.input.stem}.zpl"
@@ -77,6 +80,22 @@ def _cmd_print(args, config) -> int:
     printer = config.printer if host is None else _override_host(config.printer, host, args.port)
     where = send_zpl(result.zpl, printer)
     print(f"Sent normalized label to {where}")
+    return 0
+
+
+def _print_raw_zpl(args, config) -> int:
+    """Send a .zpl/.txt file to the printer untouched (no normalize/preview)."""
+    zpl = read_zpl(args.input)
+    if args.save_only:
+        print("Input is already ZPL; nothing to render. Drop --save-only to print it.")
+        return 0
+    host = _resolve_host(args, config.printer)
+    if config.printer.connection_type.lower() == "tcp" and not host:
+        print("No printer host configured; pass --host or set printer.tcp_host.", file=sys.stderr)
+        return 1
+    printer = config.printer if host is None else _override_host(config.printer, host, args.port)
+    where = send_zpl(zpl, printer)
+    print(f"Sent raw ZPL ({len(zpl)} bytes) to {where}")
     return 0
 
 
@@ -180,7 +199,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_test.add_argument("--save-only", action="store_true")
     p_test.set_defaults(func=_cmd_test_label)
 
-    p_print = sub.add_parser("print", help="Normalize a PDF/image and optionally print it.")
+    p_print = sub.add_parser("print", help="Normalize a PDF/image (or send a .zpl raw) and optionally print it.")
     p_print.add_argument("--input", required=True, type=Path)
     p_print.add_argument("--page", type=int, default=1, help="1-based PDF page to print. Defaults to 1.")
     p_print.add_argument("--profile", default=DEFAULT_PROFILE_NAME)

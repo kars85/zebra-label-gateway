@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { clearSession, editor } from '../editor.svelte'
+  import { clearSession, editor, printLabel } from '../editor.svelte'
+  import { toast } from '../toast.svelte'
   import AdjustPanel from './AdjustPanel.svelte'
+  import Button from './Button.svelte'
   import CropStage from './CropStage.svelte'
   import PreviewViewport from './PreviewViewport.svelte'
   import ProfileSaveDialog from './ProfileSaveDialog.svelte'
@@ -11,6 +13,11 @@
   let { onHistoryChanged }: Props = $props()
 
   let saveDialog = $state<ReturnType<typeof ProfileSaveDialog>>()
+
+  async function printRaw() {
+    const res = await printLabel()
+    toast(res.ok ? '✓ ' + res.detail : 'Print failed: ' + res.detail, res.ok ? 'ok' : 'err')
+  }
 </script>
 
 <div class="editor">
@@ -24,13 +31,23 @@
     </button>
   </div>
 
-  <div class="grid">
-    <section class="col"><CropStage /></section>
-    <section class="col adjust">
-      <AdjustPanel onSaveProfile={() => saveDialog?.open()} onPrinted={onHistoryChanged} />
+  {#if editor.session?.kind === 'zpl'}
+    <section class="raw-card">
+      <h2>Raw ZPL ready</h2>
+      <p class="mono">{editor.zplBytes.toLocaleString()} bytes</p>
+      <p>No preview or adjustments are available. The ASCII ZPL is sent directly and is not saved to Recent labels.</p>
+      <p class="warning">Only print ZPL files you trust.</p>
+      <Button variant="primary" loading={editor.printing} onclick={printRaw}>Print raw ZPL</Button>
     </section>
-    <section class="col"><PreviewViewport /></section>
-  </div>
+  {:else}
+    <div class="grid">
+      <section class="col"><CropStage /></section>
+      <section class="col adjust">
+        <AdjustPanel onSaveProfile={() => saveDialog?.open()} onPrinted={onHistoryChanged} />
+      </section>
+      <section class="col"><PreviewViewport /></section>
+    </div>
+  {/if}
 </div>
 
 <ProfileSaveDialog bind:this={saveDialog} />
@@ -40,6 +57,28 @@
     display: flex;
     flex-direction: column;
     gap: var(--sp-4);
+  }
+  .raw-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-3);
+    width: min(480px, 100%);
+    margin: var(--sp-8) auto 0;
+    padding: var(--sp-6);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    background: var(--surface);
+  }
+  .raw-card h2,
+  .raw-card p {
+    margin: 0;
+  }
+  .raw-card p {
+    color: var(--ink-muted);
+  }
+  .raw-card .warning {
+    color: var(--err);
   }
   .filebar {
     display: flex;

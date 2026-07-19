@@ -107,7 +107,8 @@ never crash the watcher.
 
 The full-featured editor is a FastAPI app: upload a PDF/image, then crop
 (drag box or auto), rotate, and adjust the threshold with a live 4x6 preview
-before printing. Run it locally:
+before printing, or upload trusted raw `.zpl` to print it directly without a
+preview. Run it locally:
 
 ```powershell
 pip install -e ".[web]"
@@ -121,9 +122,10 @@ The editor also supports:
 
 - **Multi-page PDFs** — Prev/Next page navigation; each page normalizes and
   prints independently.
-- **Saved label history** — every printed label is kept (preview + exact ZPL) in
+- **Saved label history** — every rendered PDF/image label is kept (preview + exact ZPL) in
   a "Recent labels" grid; **Reprint** re-sends the stored ZPL, **Delete** removes
-  it. Persisted under the data dir (`ZLG_DATA_DIR`).
+  it. Raw ZPL jobs are not saved because they have no preview. Persisted under
+  the data dir (`ZLG_DATA_DIR`).
 - **Crop preset training** — in Manual crop mode, frame a real label with the
   drag box and **Save crop as profile…**. The tuned crop/rotate/threshold is
   written to `<data_dir>/profiles.yaml` and auto-applies next time. The same is

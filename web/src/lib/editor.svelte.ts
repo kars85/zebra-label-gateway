@@ -51,12 +51,16 @@ export async function uploadFile(file: File): Promise<void> {
   try {
     const res = await api.upload(file)
     editor.session = res
+    editor.rendering = false
     editor.page = 0
     editor.profile = res.suggested_profile
     editor.cropMode = 'profile'
     editor.rotate = 0
     editor.threshold = 128
-    await renderNow()
+    if (editor.previewUrl) URL.revokeObjectURL(editor.previewUrl)
+    editor.previewUrl = ''
+    editor.zplBytes = res.zpl_bytes ?? 0
+    if (res.kind !== 'zpl') await renderNow()
   } catch (e) {
     editor.error = e instanceof Error ? e.message : String(e)
   } finally {
@@ -71,18 +75,20 @@ export function scheduleRender(): void {
 }
 
 export async function renderNow(): Promise<void> {
-  if (!editor.session) return
+  if (!editor.session || editor.session.kind === 'zpl') return
+  const sessionId = editor.session.id
   editor.rendering = true
   editor.error = null
   try {
     const { blob, zplBytes } = await api.render(renderParams())
+    if (editor.session?.id !== sessionId) return
     if (editor.previewUrl) URL.revokeObjectURL(editor.previewUrl)
     editor.previewUrl = URL.createObjectURL(blob)
     editor.zplBytes = zplBytes
   } catch (e) {
-    editor.error = e instanceof Error ? e.message : String(e)
+    if (editor.session?.id === sessionId) editor.error = e instanceof Error ? e.message : String(e)
   } finally {
-    editor.rendering = false
+    if (editor.session?.id === sessionId) editor.rendering = false
   }
 }
 
@@ -112,5 +118,6 @@ export function clearSession(): void {
   if (editor.previewUrl) URL.revokeObjectURL(editor.previewUrl)
   editor.session = null
   editor.previewUrl = ''
+  editor.zplBytes = 0
   editor.error = null
 }

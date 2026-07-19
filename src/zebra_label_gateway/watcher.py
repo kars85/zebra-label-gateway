@@ -3,7 +3,8 @@
 Drop a PDF or image into the input folder; the gateway normalizes it to 4x6,
 writes a preview and ZPL into the printed folder, optionally prints it (when
 ``printing.auto_print`` is enabled), and moves the original to ``printed`` on
-success or ``failed`` on error. Failures never crash the watcher -- they are
+success or ``failed`` on error. Raw ``.zpl``/``.txt`` ZPL files are sent
+as-is (no normalization or preview). Failures never crash the watcher -- they are
 recorded next to the moved file.
 """
 
@@ -19,11 +20,11 @@ from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
 
 from .config import AppConfig, load_app_config
-from .input_detection import detect_input_type
+from .input_detection import detect_input_type, read_zpl
 from .pipeline import render_input
 from .transport import send_zpl
 
-SUPPORTED_KINDS = {"pdf", "image"}
+SUPPORTED_KINDS = {"pdf", "image", "zpl"}
 Sender = Callable[[str], str]
 
 
@@ -76,7 +77,8 @@ def process_file(
     ``sender`` (used only when printing) defaults to the configured transport.
     """
     path = Path(path)
-    if detect_input_type(path) not in SUPPORTED_KINDS:
+    kind = detect_input_type(path)
+    if kind not in SUPPORTED_KINDS:
         return ProcessOutcome(path, "skipped", f"unsupported type: {path.name}")
 
     should_print = config.printing.auto_print if do_print is None else do_print
@@ -87,6 +89,22 @@ def process_file(
         return ProcessOutcome(path, "skipped", "file did not stabilize")
 
     try:
+        if kind == "zpl":
+            # Already ZPL: send as-is, no normalize/preview.
+            zpl = read_zpl(path)
+            detail = "raw ZPL passthrough"
+            if should_print:
+                send = sender or (lambda z: send_zpl(z, config.printer))
+                where = send(zpl)
+                detail = f"printed to {where}; {detail}"
+                status = "printed"
+            else:
+                detail = f"auto_print disabled; {detail}"
+                status = "rendered"
+            moved = _unique_destination(config.folders.printed, path.name)
+            shutil.move(str(path), str(moved))
+            return ProcessOutcome(path, status, detail, moved)
+
         result = render_input(path, profile_name)
         zpl_path = config.folders.printed / f"{path.stem}.zpl"
         preview_path = config.folders.printed / f"{path.stem}.preview.png"

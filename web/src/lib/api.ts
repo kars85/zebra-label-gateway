@@ -19,11 +19,13 @@ export interface ProfileInfo {
 
 export interface UploadResult {
   id: string
+  kind: 'pdf' | 'image' | 'zpl'
   name: string
-  width: number
-  height: number
+  width?: number
+  height?: number
   pages: number
-  source_url: string
+  source_url?: string
+  zpl_bytes?: number
   suggested_profile: string
 }
 

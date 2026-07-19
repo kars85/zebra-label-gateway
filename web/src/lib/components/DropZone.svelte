@@ -31,7 +31,7 @@
   <input
     bind:this={inputEl}
     type="file"
-    accept=".pdf,.png,.jpg,.jpeg,.bmp,.tif,.tiff,image/*,application/pdf"
+    accept=".pdf,.png,.jpg,.jpeg,.bmp,.tif,.tiff,.zpl,image/*,application/pdf"
     hidden
     onchange={(e) => pick(e.currentTarget.files)}
   />
@@ -47,7 +47,7 @@
   </span>
   <span class="dz-copy">
     <span class="dz-title">{editor.uploading ? 'Reading label…' : 'Drop a label to begin'}</span>
-    <span class="dz-sub">PDF or image · normalized to a 4×6 (<span class="mono">812×1218</span>) ZPL label</span>
+    <span class="dz-sub">PDF or image · normalized to 4×6 · raw <span class="mono">.zpl</span> sent directly</span>
   </span>
   <span class="dz-hint mono">or press ⌘V / Ctrl+V to paste a screenshot</span>
   {#if editor.error}<span class="dz-err">{editor.error}</span>{/if}

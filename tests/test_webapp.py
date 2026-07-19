@@ -66,6 +66,33 @@ def test_upload_render_print_flow(client, monkeypatch) -> None:
     assert sent["zpl"].startswith("^XA")
 
 
+def test_upload_and_print_raw_zpl(client, monkeypatch) -> None:
+    raw = b"^XA\r\n^FDcaf\xe9^FS\r\n^XZ"
+    expected = "^XA\r\n^FDcaf^FS\r\n^XZ"
+    sent = {}
+    monkeypatch.setenv("ZLG_PRINTER_HOST", "10.9.8.7")
+    monkeypatch.setenv("ZLG_PRINTER_PORT", "9999")
+    monkeypatch.setattr(
+        server,
+        "send_zpl_tcp",
+        lambda zpl, host, port: sent.update(zpl=zpl, host=host, port=port),
+    )
+
+    uploaded = client.post(
+        "/api/upload",
+        files={"file": ("label.ZPL", raw, "application/octet-stream")},
+    )
+
+    assert uploaded.status_code == 200
+    session = uploaded.json()
+    assert session["kind"] == "zpl" and session["zpl_bytes"] == len(expected)
+    assert client.post("/api/render", json={"id": session["id"]}).status_code == 400
+
+    printed = client.post("/api/print", json={"id": session["id"]})
+    assert printed.status_code == 200
+    assert sent == {"zpl": expected, "host": "10.9.8.7", "port": 9999}
+
+
 def _multipage_pdf_bytes(pages: int = 3) -> bytes:
     doc = fitz.open()
     for i in range(pages):

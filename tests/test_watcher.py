@@ -54,6 +54,23 @@ def test_print_uses_injected_sender(tmp_path) -> None:
     assert "printed to fake-dest" in outcome.detail
 
 
+def test_zpl_passthrough_prints_raw(tmp_path) -> None:
+    config = _config(tmp_path, auto_print=True)
+    config.folders.input.mkdir(parents=True)
+    raw = "^XA^FDtest^FS^XZ"
+    zpl_file = config.folders.input / "label.zpl"
+    zpl_file.write_text(raw, encoding="ascii")
+    sent = []
+
+    outcome = process_file(zpl_file, config, sender=lambda z: sent.append(z) or "fake-dest", wait_stable=False)
+
+    assert outcome.status == "printed"
+    assert sent == [raw]  # untouched passthrough
+    assert not zpl_file.exists()
+    assert (config.folders.printed / "label.zpl").exists()
+    assert not (config.folders.printed / "label.preview.png").exists()
+
+
 def test_failure_routes_to_failed(tmp_path) -> None:
     config = _config(tmp_path, auto_print=False)
     config.folders.input.mkdir(parents=True)

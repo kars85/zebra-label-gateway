@@ -23,7 +23,7 @@ from pydantic import BaseModel
 
 from ..config import PrinterConfig, data_dir, load_app_config
 from ..image_processor import LABEL_HEIGHT_DOTS, LABEL_WIDTH_DOTS
-from ..input_detection import detect_input_type
+from ..input_detection import detect_input_type, read_zpl
 from ..pdf_renderer import pdf_page_count_from_bytes, render_page_from_bytes
 from ..pipeline import normalize_with_profile
 from ..printer_tcp import decode_status, format_status, query_status_raw, send_zpl_tcp
@@ -40,18 +40,22 @@ MAX_SESSIONS = 32
 class _Session:
     """An uploaded file. PDFs keep their bytes so any page can be rendered lazily."""
 
-    __slots__ = ("kind", "name", "data", "image", "page_count", "_page_cache")
+    __slots__ = ("kind", "name", "data", "image", "zpl", "page_count", "_page_cache")
 
     def __init__(self, kind: str, name: str, data: bytes | None = None,
-                 image: Image.Image | None = None, page_count: int = 1) -> None:
+                 image: Image.Image | None = None, zpl: str | None = None,
+                 page_count: int = 1) -> None:
         self.kind = kind
         self.name = name
         self.data = data  # PDF bytes (kind == "pdf")
         self.image = image  # RGB image (kind == "image")
+        self.zpl = zpl  # ASCII ZPL (kind == "zpl")
         self.page_count = page_count
         self._page_cache: dict[int, Image.Image] = {}
 
     def page_image(self, page: int = 0) -> Image.Image:
+        if self.kind == "zpl":
+            raise HTTPException(status_code=400, detail="Raw ZPL has no preview; print it directly.")
         if self.kind == "image":
             return self.image
         if page not in self._page_cache:
@@ -256,6 +260,7 @@ def create_app() -> FastAPI:
         raw = await file.read()
         name = file.filename or "upload"
         kind = detect_input_type(name)
+        source = None
         try:
             if kind == "pdf":
                 page_count = pdf_page_count_from_bytes(raw)
@@ -264,6 +269,11 @@ def create_app() -> FastAPI:
             elif kind == "image":
                 source = Image.open(io.BytesIO(raw)).convert("RGB")
                 session = _Session("image", name, image=source, page_count=1)
+            elif kind == "zpl":
+                zpl = read_zpl(raw)
+                if not zpl.strip():
+                    raise HTTPException(status_code=400, detail=f"Empty ZPL file: {name}")
+                session = _Session("zpl", name, zpl=zpl)
             else:
                 raise HTTPException(status_code=400, detail=f"Unsupported file type: {name}")
         except HTTPException:
@@ -276,11 +286,23 @@ def create_app() -> FastAPI:
         while len(sessions) > MAX_SESSIONS:
             sessions.popitem(last=False)
 
+        if kind == "zpl":
+            return {
+                "id": session_id,
+                "kind": kind,
+                "name": name,
+                "pages": 1,
+                "zpl_bytes": len(session.zpl or ""),
+                "suggested_profile": DEFAULT_PROFILE_NAME,
+            }
+
         # Rough letter-vs-label heuristic: aspect near 4:6 (0.667) => already a label.
+        assert source is not None
         ratio = source.width / source.height
         suggested = DEFAULT_PROFILE_NAME if 0.6 <= ratio <= 0.72 else "generic_letter_embedded"
         return {
             "id": session_id,
+            "kind": kind,
             "name": name,
             "width": source.width,
             "height": source.height,
@@ -309,16 +331,23 @@ def create_app() -> FastAPI:
 
     @app.post("/api/print")
     def api_print(params: RenderParams) -> JSONResponse:
-        preview, zpl, session = _render(params)
+        session = sessions.get(params.id)
+        preview = None
+        if session is not None and session.kind == "zpl":
+            zpl = session.zpl or ""
+        else:
+            preview, zpl, session = _render(params)
         printer = current_printer()
         try:
             send_zpl_tcp(zpl, printer.tcp_host, printer.tcp_port)
         except OSError as exc:
             raise HTTPException(status_code=502, detail=f"Print failed: {exc}") from exc
-        history.add(session.name, params.profile, params.page, _png_bytes(preview), zpl, printed=True)
+        if preview is not None:
+            history.add(session.name, params.profile, params.page, _png_bytes(preview), zpl, printed=True)
+        raw = "raw ZPL " if session.kind == "zpl" else ""
         return JSONResponse({
             "ok": True,
-            "detail": f"Sent {len(zpl)} bytes to {printer.tcp_host}:{printer.tcp_port}",
+            "detail": f"Sent {raw}{len(zpl)} bytes to {printer.tcp_host}:{printer.tcp_port}",
             "zpl_bytes": len(zpl),
         })
 
