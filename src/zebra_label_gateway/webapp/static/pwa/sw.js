@@ -3,13 +3,13 @@
 // cached shell offline); stale-while-revalidate for hashed build assets and
 // fonts; never cache API responses (printer state must be live).
 
-const VERSION = 'zlg-v1'
+const VERSION = 'zlg-v2'
 const SHELL = `${VERSION}-shell`
 const ASSETS = `${VERSION}-assets`
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(SHELL).then((cache) => cache.addAll(['/', '/static/pwa/manifest.webmanifest'])),
+    caches.open(SHELL).then((cache) => cache.addAll(['/', '/manifest.webmanifest?v=2'])),
   )
   self.skipWaiting()
 })

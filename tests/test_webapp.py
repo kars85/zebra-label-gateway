@@ -1,8 +1,11 @@
 import io
+import tomllib
+from pathlib import Path
 
 import fitz
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 
 from zebra_label_gateway.webapp import server
 
@@ -35,6 +38,22 @@ def test_index_served(client) -> None:
     res = client.get("/")
     assert res.status_code == 200
     assert "Zebra Label Gateway" in res.text
+
+
+def test_pwa_assets_served(client) -> None:
+    manifest = client.get("/manifest.webmanifest").json()
+    assert client.get("/sw.js").status_code == 200
+    for icon in manifest["icons"]:
+        response = client.get(icon["src"])
+        assert response.status_code == 200 and response.content.startswith(b"\x89PNG")
+    touch_icon = client.get("/static/pwa/icons/apple-touch-icon.png?v=2")
+    assert Image.open(io.BytesIO(touch_icon.content)).size == (180, 180)
+
+
+def test_pwa_assets_are_packaged() -> None:
+    project = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text(encoding="utf-8"))
+    package_data = project["tool"]["setuptools"]["package-data"]["zebra_label_gateway.webapp"]
+    assert {"static/pwa/*", "static/pwa/icons/*"} <= set(package_data)
 
 
 def test_upload_render_print_flow(client, monkeypatch) -> None:
