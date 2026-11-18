@@ -54,3 +54,34 @@ samples/*.pdf
 # Secrets/local config
 config/local.yaml
 .env
+
+# Local agent runtime and credentials
+.empirica/
+.abc-state/
+.env
+.env.local
+.env.*.local
+
+# Discoverable project-owned workflow files
+!/.agent-workflow.json
+!/.claude/
+!/.claude/commands/
+!/.claude/commands/abc.md
+!/.claude/commands/intake.md
+!/.claude/skills/
+!/.agents/
+!/.agents/skills/
+!/skills/
+!/scripts/
+!/scripts/agent-workflow.py
+!/docs/
+!/docs/agent-workflow.md
+!/skills/zebra-label-gateway-abc/
+!/skills/zebra-label-gateway-abc/SKILL.md
+!/.agents/skills/zebra-label-gateway-abc
+!/.claude/skills/zebra-label-gateway-abc
+!/skills/zebra-label-gateway-intake/
+!/skills/zebra-label-gateway-intake/SKILL.md
+!/.agents/skills/zebra-label-gateway-intake
+!/.claude/skills/zebra-label-gateway-intake
+!/scripts/test_agent_workflow.py

@@ -1,0 +1,18 @@
+{
+  "name": "zebra-label-gateway",
+  "repository": "kars85/zebra-label-gateway",
+  "project_id": "d15e72d2-eb89-4d7d-baa6-1d4ef5436c76",
+  "description": "Shipping label normalization gateway",
+  "skills": [
+    "zebra-label-gateway-abc",
+    "zebra-label-gateway-intake"
+  ],
+  "verification_commands": [
+    "python3 -m pytest"
+  ],
+  "verification_note": "Preserve label dimensions, barcode readability and 203-dpi ZPL output. Use synthetic labels; printing and spool changes require explicit task scope.",
+  "ci_workflows": [
+    ".github/workflows/tests.yml"
+  ],
+  "setup_issue": "https://github.com/kars85/zebra-label-gateway/issues/1"
+}
