@@ -8,10 +8,12 @@
     "zebra-label-gateway-intake"
   ],
   "verification_commands": [
+    "python3 -m unittest discover -s scripts -p 'test_agent_workflow.py'",
     "python3 -m pytest"
   ],
   "verification_note": "Preserve label dimensions, barcode readability and 203-dpi ZPL output. Use synthetic labels; printing and spool changes require explicit task scope.",
   "ci_workflows": [
+    ".github/workflows/agent-workflow.yml",
     ".github/workflows/tests.yml"
   ],
   "setup_issue": "https://github.com/kars85/zebra-label-gateway/issues/1"
